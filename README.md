@@ -11,7 +11,7 @@ Real-time Audio Processing: Utilizes Piper for high-quality, real-time, and effi
 
 Local and Private: All processing happens on your machine, ensuring data privacy and offline functionality.
 
-Web Interface: Access the interactive voice agent through a user-friendly web interface (http://localhost:7860).
+Web Interface: Access the interactive voice agent through a user-friendly web interface (http://localhost:3000).
 
 Configurable API Endpoints: Easily customize Ollama and Piper API URLs within the ollama.py script.
 
