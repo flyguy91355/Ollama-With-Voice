@@ -325,7 +325,7 @@
             }
             if (confirm(`Delete conversation ${selectedId}?`)) {
                 try {
-                    const response = await fetch(`http://localhost:3000/conversation/${selectedId}`, {
+                    const response = await fetch(`/conversation/${selectedId}`, {
                         method: 'DELETE'
                     });
                     if (!response.ok) {
@@ -386,7 +386,7 @@
 
         async function generateTTS(sentence, voice) {
             const ttsBody = { text: sentence, voice };
-            const ttsResponse = await fetch('http://localhost:3000/tts', {
+            const ttsResponse = await fetch('/tts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(ttsBody)
@@ -401,7 +401,7 @@
 
         async function loadConversations() {
             try {
-                const response = await fetch('http://localhost:3000/conversations');
+                const response = await fetch('/conversations');
                 if (!response.ok) {
                     throw new Error('Failed to fetch conversations');
                 }
@@ -421,7 +421,7 @@
 
         async function loadModels() {
             try {
-                const response = await fetch('http://localhost:3000/models');
+                const response = await fetch('/models');
                 if (!response.ok) {
                     throw new Error('Failed to fetch models');
                 }
@@ -451,7 +451,7 @@
 
         async function loadVoices() {
             try {
-                const response = await fetch('http://localhost:3000/voices');
+                const response = await fetch('/voices');
                 if (!response.ok) {
                     throw new Error('Failed to fetch voices');
                 }
@@ -488,7 +488,7 @@
                 return;
             }
             try {
-                const response = await fetch(`http://localhost:3000/conversation/${id}`);
+                const response = await fetch(`/conversation/${id}`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch conversation');
                 }
@@ -525,7 +525,7 @@
                 { query, conversationId: selectedId, model: selectedModel, maxTokens };
             addMessage('user', query);
             try {
-                const response = await fetch('http://localhost:3000/query', {
+                const response = await fetch('/query', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
