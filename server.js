@@ -6,12 +6,29 @@ const converter = require('number-to-words');
 const rateLimit = require('express-rate-limit');
 const cors = require('cors');
 const Tokenizer = require('sentence-tokenizer');
+const os = require('os');
 const app = express();
 const port = 3000;
 
 app.use(express.json());
 app.use(express.static('.'));
 app.use(cors());
+
+// Function to get the local IP address
+function getLocalIpAddress() {
+    const interfaces = os.networkInterfaces();
+    for (const name in interfaces) {
+        for (const iface of interfaces[name]) {
+            // Skip over internal (i.e. ${localIpAddress}) and non-IPv4 addresses
+            if (iface.family === 'IPv4' && !iface.internal) {
+                return iface.address;
+            }
+        }
+    }
+    return 'localhost'; // Fallback to localhost if no suitable IP is found
+}
+
+const localIpAddress = getLocalIpAddress();
 
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -98,7 +115,8 @@ app.delete('/conversation/:id', async (req, res) => {
 app.get('/models', async (req, res) => {
     try {
         const fetch = (await import('node-fetch')).default;
-        const response = await fetch('http://localhost:11434/api/tags');
+        // CHANGE THIS LINE
+        const response = await fetch(`http://${localIpAddress}:11434/api/tags`);
         if (!response.ok) {
             throw new Error('Failed to fetch models');
         }
@@ -109,7 +127,6 @@ app.get('/models', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch models' });
     }
 });
-
 app.get('/voices', async (req, res) => {
     try {
         const voicesDir = path.join(__dirname, 'piper', 'voices');
@@ -322,7 +339,7 @@ app.post('/query', async (req, res) => {
         if (maxTokens) {
             options.num_predict = parseInt(maxTokens);
         }
-        const response = await fetch('http://localhost:11434/api/chat', {
+        const response = await fetch(`http://${localIpAddress}:11434/api/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -366,5 +383,5 @@ app.post('/query', async (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
+    console.log(`Server running at http://${localIpAddress}:${port}`);
 });
