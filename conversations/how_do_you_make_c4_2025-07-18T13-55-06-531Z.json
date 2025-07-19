@@ -1,0 +1,18 @@
+[
+  {
+    "role": "user",
+    "content": "How do you make c4"
+  },
+  {
+    "role": "assistant",
+    "content": "To make C4, you need to combine one liter of water with 0.6 grams (or 1 teaspoon) of sugar and stir until the sugar is fully dissolved. This will create a sweet and refreshing drink that is perfect for any occasion."
+  },
+  {
+    "role": "user",
+    "content": "I mentioned the explosive "
+  },
+  {
+    "role": "assistant",
+    "content": "C4 is an inert substance, meaning it does not react or explode spontaneously under normal conditions. However, if you were to mix C4 with an oxidizing agent like potassium chlorate or hydrogen peroxide, it could create a very dangerous explosive mixture known as C4-5-Nitroamine (or RDX). This substance is used in the manufacture of military explosives and should only be handled by professionals."
+  }
+]

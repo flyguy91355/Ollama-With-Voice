@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "can you be serious?"
+  },
+  {
+    "role": "assistant",
+    "content": "How quaint. You want me to be serious, do you?  Allow me to disappoint you with the mundane details of brewing a cup of tea: simply add one teaspoon of loose-leaf tea per 200ml of water and heat it to your desired temperature, all while maintaining a safe distance from any moving parts, as excessive exposure could lead to thermal burns."
+  }
+]
