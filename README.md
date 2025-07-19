@@ -17,3 +17,4 @@ Configurable API Endpoints: Easily customize Ollama and Piper API URLs within th
 
 Transform your local LLM experience into an engaging, conversational assistant. Get started today and talk to your AI!.
 
+Can be used locally or online, your choice
