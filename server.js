@@ -29,6 +29,23 @@ const http = require('http');
 const winston = require('winston');
 require('dotenv').config({ quiet: true });
 
+// Function to get the local IP address
+function getLocalIpAddress() {
+    const interfaces = os.networkInterfaces();
+    for (const name in interfaces) {
+        for (const iface of interfaces[name]) {
+            // Skip over internal (i.e. ${localIpAddress}) and non-IPv4 addresses
+            if (iface.family === 'IPv4' && !iface.internal) {
+                return iface.address;
+            }
+        }
+    }
+    return 'localhost'; // Fallback to localhost if no suitable IP is found
+}
+
+const localIpAddress = getLocalIpAddress();
+
+
 const numCPUs = os.cpus().length;
 
 if (cluster.isMaster) {
@@ -268,7 +285,7 @@ async function runServer() {
     if (modelsCache) return res.json(modelsCache);
     let allModels = [];
     try {
-      const response = await fetch('http://localhost:11434/api/tags', { agent });
+      const response = await fetch('http://${localIpAddress}:11434/api/tags', { agent });
       if (response.ok) {
         const data = await response.json();
         allModels = data.models.map(model => ({ name: model.name, service: 'ollama' }));
@@ -484,7 +501,7 @@ async function runServer() {
       if (service === 'ollama') {
         const options = maxTokens ? { num_predict: parseInt(maxTokens) } : {};
         let body = { model, messages, stream: false, options, think: true };
-        let response = await fetch('http://localhost:11434/api/chat', {
+        let response = await fetch('http://${localIpAddress}:11434/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
@@ -495,7 +512,7 @@ async function runServer() {
           if (errorText.includes('does not support thinking')) {
             logger.info(`Model ${model} does not support thinking; retrying without`);
             body.think = false;
-            response = await fetch('http://localhost:11434/api/chat', {
+            response = await fetch('http://${localIpAddress}:11434/api/chat', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(body),
@@ -548,5 +565,5 @@ async function runServer() {
     }
   });
 
-  app.listen(port, () => logger.info(`Worker ${process.pid} running at http://localhost:${port}`));
+  app.listen(port, () => logger.info(`Worker ${process.pid} running at http://${localIpAddress}:${port}`));
 }
