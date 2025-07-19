@@ -15,4 +15,5 @@ Web Interface: Access the interactive voice agent through a user-friendly web in
 
 Configurable API Endpoints: Easily customize Ollama and Piper API URLs within the ollama.py script.
 
-Transform your local LLM experience into an engaging, conversational assistant. Get started today and talk to your AI!
+Transform your local LLM experience into an engaging, conversational assistant. Get started today and talk to your AI!.
+
