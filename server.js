@@ -10,7 +10,7 @@
  * provider-specific chunk sizes, in-memory conversation cache, HTTP keep-alive, refactored code.
  * Enhancements: Google TTS key validation, configurable AWS region, cross-platform Piper, cache refresh endpoint,
  * provider-specific chunk sizes, environment variables for API keys, Winston logging.
- * Fixes: Automatic detection for 'think' support in Ollama models with retry, robust regex for <think> tag removal using new RegExp, enhanced Ollama response validation with fallback, suppressed dotenv logs, punycode handling, removed system prompt for Ollama to avoid response issues, limited history to last 4 messages to prevent token buildup.
+ * Fixes: Automatic detection for 'think' support in Ollama models with retry, robust regex for <think> tag removal using new RegExp, enhanced Ollama response validation with fallback, suppressed dotenv logs, removed system prompt for Ollama to avoid response issues, limited history to last 4 messages to prevent token buildup.
  */
 
 const express = require('express');
@@ -21,13 +21,13 @@ const converter = require('number-to-words');
 const rateLimit = require('express-rate-limit');
 const cors = require('cors');
 const Tokenizer = require('sentence-tokenizer');
-const { PollyClient, SynthesizeSpeechCommand } = require('@aws-sdk/client-polly');
+const { PollyClient, SynthesizeSpeechCommand, DescribeVoicesCommand } = require('@aws-sdk/client-polly');
 const compression = require('compression');
 const cluster = require('cluster');
 const os = require('os');
 const http = require('http');
 const winston = require('winston');
-require('dotenv').config({ quiet: true });
+require('dotenv').config({ silent: true });
 
 // Function to get the local IP address
 function getLocalIpAddress() {
@@ -285,7 +285,7 @@ async function runServer() {
     if (modelsCache) return res.json(modelsCache);
     let allModels = [];
     try {
-      const response = await fetch('http://${localIpAddress}:11434/api/tags', { agent });
+      const response = await fetch('http://127.0.0.1:11434/api/tags', { agent });
       if (response.ok) {
         const data = await response.json();
         allModels = data.models.map(model => ({ name: model.name, service: 'ollama' }));
@@ -342,12 +342,25 @@ async function runServer() {
       }
     }
     // Amazon
-    const amazonVoices = [
-      { name: 'Joey', lang: 'en-US', gender: 'male', service: 'amazon' },
-      { name: 'Brian', lang: 'en-GB', gender: 'male', service: 'amazon' },
-      { name: 'Mathieu', lang: 'fr-FR', gender: 'male', service: 'amazon' }
-    ];
-    voices = [...voices, ...amazonVoices];
+    if (process.env.ENABLE_AWS_TTS === 'true' && apiKeys.amazon?.accessKeyId && apiKeys.amazon?.secretAccessKey) {
+      try {
+        const pollyClient = new PollyClient({
+          region: process.env.AWS_REGION || 'us-east-1',
+          credentials: apiKeys.amazon
+        });
+        const command = new DescribeVoicesCommand({});
+        const response = await pollyClient.send(command);
+        const amazonVoices = response.Voices.map(voice => ({
+          name: voice.Id,
+          lang: voice.LanguageCode,
+          gender: voice.Gender.toLowerCase(),
+          service: 'amazon'
+        }));
+        voices = [...voices, ...amazonVoices];
+      } catch (err) {
+        logger.warn('Failed to fetch Amazon Polly voices:', err.message);
+      }
+    }
     voicesCache = voices;
     res.json(voices);
   });
@@ -367,7 +380,7 @@ async function runServer() {
       return res.status(400).json({ error: textError || 'Voice object is required' });
     }
 
-    const maxChunkLength = voiceObj.service === 'google' ? 1000 : 2000;
+    const maxChunkLength = voiceObj.service === 'google' ? 1000 : voiceObj.service === 'amazon' ? 2000 : 2000;
     const chunks = chunkText(text, maxChunkLength);
     if (chunks.length === 0) {
       logger.error('No valid text for TTS');
@@ -398,6 +411,14 @@ async function runServer() {
       const piperBinary = path.join(__dirname, 'piper', isWindows ? 'piper.exe' : 'piper');
       const voiceModel = path.join(piperVoicesDir, `${voiceObj.name}.onnx`);
       const voiceConfig = path.join(piperVoicesDir, `${voiceObj.name}.onnx.json`);
+
+      try {
+        await fs.access(piperBinary);
+        await fs.access(voiceModel);
+        await fs.access(voiceConfig);
+      } catch (err) {
+        throw new Error('Piper binary or voice model/config not found');
+      }
 
       audioFile = `output_${Date.now()}_${index}.wav`;
       const audioFilePath = path.join(audioDir, audioFile);
@@ -434,6 +455,32 @@ async function runServer() {
         writeStream.on('finish', () => resolve(`audio/${audioFile}`));
         writeStream.on('error', reject);
       });
+    } else if (voiceObj.service === 'google') {
+      if (!apiKeys.gemini) {
+        throw new Error('Google API key required');
+      }
+      const url = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKeys.gemini}`;
+      const body = {
+        input: { text: cleanText },
+        voice: { languageCode: voiceObj.lang, name: voiceObj.name },
+        audioConfig: { audioEncoding: 'MP3' }
+      };
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        agent
+      });
+      if (!response.ok) {
+        throw new Error(`Google TTS error: ${response.status}`);
+      }
+      const data = await response.json();
+      const audioBuffer = Buffer.from(data.audioContent, 'base64');
+
+      audioFile = `output_${Date.now()}_${index}.mp3`;
+      const audioFilePath = path.join(audioDir, audioFile);
+      await fs.writeFile(audioFilePath, audioBuffer);
+      return `audio/${audioFile}`;
     } else {
       throw new Error(`Unknown TTS service: ${voiceObj.service}`);
     }
@@ -448,7 +495,9 @@ async function runServer() {
           logger.error(`Failed to send audio file ${filename}:`, err);
           res.status(500).json({ error: 'Failed to send audio file' });
         } else {
-          fs.unlink(filePath).catch(err => logger.error(`Error deleting audio ${filename}:`, err));
+          setTimeout(() => {
+            fs.unlink(filePath).catch(err => logger.error(`Error deleting audio ${filename}:`, err));
+          }, 1000); // Delay deletion to avoid race conditions
         }
       });
     } catch (err) {
@@ -501,7 +550,7 @@ async function runServer() {
       if (service === 'ollama') {
         const options = maxTokens ? { num_predict: parseInt(maxTokens) } : {};
         let body = { model, messages, stream: false, options, think: true };
-        let response = await fetch('http://${localIpAddress}:11434/api/chat', {
+        let response = await fetch('http://127.0.0.1:11434/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
@@ -512,7 +561,7 @@ async function runServer() {
           if (errorText.includes('does not support thinking')) {
             logger.info(`Model ${model} does not support thinking; retrying without`);
             body.think = false;
-            response = await fetch('http://${localIpAddress}:11434/api/chat', {
+            response = await fetch('http://127.0.0.1:11434/api/chat', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(body),
