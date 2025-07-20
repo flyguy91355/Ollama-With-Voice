@@ -25,7 +25,6 @@ const { PollyClient, SynthesizeSpeechCommand, DescribeVoicesCommand } = require(
 const compression = require('compression');
 const cluster = require('cluster');
 const os = require('os');
-const http = require('http');
 const winston = require('winston');
 require('dotenv').config({ silent: true });
 
@@ -62,8 +61,6 @@ if (cluster.isMaster) {
 }
 
 async function runServer() {
-  const fetch = (await import('node-fetch')).default;
-
   const app = express();
   const port = 3000;
 
@@ -84,7 +81,7 @@ async function runServer() {
   // ─── Load API Keys from Environment ────────────────────────────────────────────
   const apiKeys = {
     openai: process.env.OPENAI_KEY,
-    gemini: process.env.ENABLE_GOOGLE_TTS === 'true' ? process.env.GEMINI_KEY : null,
+    gemini: process.env.GEMINI_KEY,
     grok: process.env.GROK_KEY,
     amazon: process.env.ENABLE_AWS_TTS === 'true' ? {
       accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -149,9 +146,6 @@ async function runServer() {
     return 'ollama';
   }
 
-  // HTTP agent for keep-alive
-  const agent = new http.Agent({ keepAlive: true });
-
   async function validateGoogleTTSKey(key) {
     try {
       const response = await fetch(`https://texttospeech.googleapis.com/v1/voices?key=${key}`);
@@ -194,7 +188,7 @@ async function runServer() {
     }
 
     try {
-      const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), agent });
+      const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         let errorMessage = `Failed to fetch from ${service} (Status: ${response.status})`;
@@ -285,7 +279,7 @@ async function runServer() {
     if (modelsCache) return res.json(modelsCache);
     let allModels = [];
     try {
-      const response = await fetch('http://127.0.0.1:11434/api/tags', { agent });
+      const response = await fetch('http://127.0.0.1:11434/api/tags');
       if (response.ok) {
         const data = await response.json();
         allModels = data.models.map(model => ({ name: model.name, service: 'ollama' }));
@@ -323,13 +317,13 @@ async function runServer() {
       logger.warn('Failed to list local Piper voices:', err.message);
     }
     // Google
-    if (apiKeys.gemini) {
+    if (process.env.ENABLE_GOOGLE_TTS === 'true' && apiKeys.gemini) {
       const isValidKey = await validateGoogleTTSKey(apiKeys.gemini);
       if (!isValidKey) {
         logger.warn('Invalid or missing Google Cloud TTS API key');
       } else {
         try {
-          const response = await fetch(`https://texttospeech.googleapis.com/v1/voices?key=${apiKeys.gemini}`, { agent });
+          const response = await fetch(`https://texttospeech.googleapis.com/v1/voices?key=${apiKeys.gemini}`);
           if (response.ok) {
             const data = await response.json();
             voices = [...voices, ...data.voices.map(voice => ({
@@ -468,8 +462,7 @@ async function runServer() {
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        agent
+        body: JSON.stringify(body)
       });
       if (!response.ok) {
         throw new Error(`Google TTS error: ${response.status}`);
@@ -553,8 +546,7 @@ async function runServer() {
         let response = await fetch('http://127.0.0.1:11434/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-          agent
+          body: JSON.stringify(body)
         });
         if (!response.ok) {
           const errorText = await response.text();
@@ -564,8 +556,7 @@ async function runServer() {
             response = await fetch('http://127.0.0.1:11434/api/chat', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(body),
-              agent
+              body: JSON.stringify(body)
             });
           } else {
             logger.error(`Ollama API error for model ${model}: Status ${response.status}, Response: ${errorText}`);
