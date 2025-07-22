@@ -30,6 +30,8 @@
             padding: 10px 20px;
             background-color: #fff;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative; /* For mobile menu positioning */
+            z-index: 1001; /* Ensure header is above other content */
         }
         .dark header {
             background-color: #2a2a2a;
@@ -52,10 +54,24 @@
         #theme-toggle:hover {
             background-color: #3a7bc8;
         }
+        /* Mobile Menu Button */
+        #menu-toggle {
+            display: none; /* Hidden on desktop */
+            background: none;
+            border: none;
+            font-size: 1.8em;
+            color: #333;
+            cursor: pointer;
+            padding: 0 10px;
+        }
+        .dark #menu-toggle {
+            color: #fff;
+        }
         main {
             flex: 1;
             display: flex;
             overflow: hidden;
+            position: relative;
         }
         #sidebar {
             width: 250px;
@@ -63,6 +79,7 @@
             background-color: #fff;
             border-right: 1px solid #ddd;
             overflow-y: auto;
+            flex-shrink: 0; /* Prevent sidebar from shrinking */
         }
         .dark #sidebar {
             background-color: #2a2a2a;
@@ -78,6 +95,14 @@
         #conversation-select {
             width: 100%;
             margin-bottom: 10px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .dark #conversation-select {
+            background-color: #3a3a3a;
+            color: #fff;
+            border-color: #555;
         }
         #sidebar button {
             display: block;
@@ -111,6 +136,7 @@
         label {
             display: block;
             margin-bottom: 5px;
+            font-size: 0.9em;
         }
         select, input {
             width: 100%;
@@ -130,7 +156,7 @@
             border-radius: 4px;
             padding: 10px;
             overflow-y: auto;
-            margin-bottom: 20px;
+            margin-bottom: 10px; /* Reduced margin */
             position: relative;
         }
         .dark #chat {
@@ -140,16 +166,23 @@
         }
         #chat div {
             margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        #chat div strong {
+            text-transform: capitalize;
         }
         #input-area {
             display: flex;
             gap: 10px;
+            padding-top: 10px; /* Space above input */
         }
         #query {
             flex: 1;
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
+            min-height: 40px; /* Ensure a minimum height for textarea */
+            resize: vertical; /* Allow vertical resizing */
         }
         .dark #query {
             background-color: #3a3a3a;
@@ -157,12 +190,13 @@
             border-color: #555;
         }
         #input-area button {
-            padding: 10px 20px;
+            padding: 10px 15px; /* Adjusted padding for buttons */
             background-color: #4a90e2;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            flex-shrink: 0; /* Prevent buttons from shrinking */
         }
         #input-area button:hover {
             background-color: #3a7bc8;
@@ -178,33 +212,149 @@
             display: none;
             z-index: 1000;
         }
-        #tts-loading {
+        #tts-loading, #tts-playing {
             display: none;
             position: absolute;
             top: 10px;
             right: 10px;
             font-size: 0.9em;
+            padding: 5px 8px;
+            border-radius: 3px;
+        }
+        #tts-loading {
             color: #4a90e2;
+            background-color: rgba(74, 144, 226, 0.1);
         }
         #tts-playing {
-            display: none;
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            font-size: 0.9em;
             color: #2ecc71;
+            background-color: rgba(46, 204, 113, 0.1);
         }
+
+        /* Mobile-specific styles */
         @media (max-width: 768px) {
+            header {
+                padding: 10px;
+            }
+            h1 {
+                font-size: 1.3em;
+            }
+            #theme-toggle {
+                padding: 6px 12px;
+            }
+            #menu-toggle {
+                display: block; /* Show menu button on mobile */
+            }
             main {
                 flex-direction: column;
             }
             #sidebar {
                 width: 100%;
+                height: auto; /* Allow sidebar to take height naturally */
                 border-right: none;
                 border-bottom: 1px solid #ddd;
+                padding: 15px;
+                position: absolute; /* Position sidebar absolutely for overlay effect */
+                top: 0;
+                left: -100%; /* Initially hide off-screen */
+                transition: left 0.3s ease-in-out; /* Smooth transition */
+                z-index: 1000;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            }
+            #sidebar.active {
+                left: 0; /* Slide in when active */
+            }
+            .dark #sidebar {
+                box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            }
+            #sidebar h2 {
+                margin-top: 0;
+            }
+            #content {
+                padding: 15px;
+                padding-top: 0; /* Reduce top padding as sidebar is an overlay */
+                flex: 1; /* Ensure content takes remaining space */
             }
             .controls {
                 flex-direction: column;
+                gap: 15px;
+                margin-bottom: 15px;
+            }
+            .controls > div {
+                width: 100%; /* Full width for control items */
+            }
+            select, input, #query {
+                padding: 10px;
+                font-size: 1em;
+            }
+            #chat {
+                margin-bottom: 15px; /* Adjusted margin */
+                padding: 12px;
+                font-size: 0.95em;
+            }
+            #input-area {
+                flex-wrap: wrap; /* Allow buttons to wrap */
+                justify-content: space-between; /* Distribute buttons */
+                gap: 8px; /* Smaller gap between buttons */
+            }
+            #query {
+                width: 100%;
+                min-height: 80px; /* Taller input area for mobile */
+                margin-bottom: 8px; /* Space between textarea and buttons */
+            }
+            #input-area button {
+                flex-grow: 1; /* Allow buttons to grow and fill space */
+                min-width: calc(33% - 8px); /* Adjust based on desired number of buttons per row */
+                padding: 12px 10px; /* More vertical padding for easier tapping */
+                font-size: 1em;
+            }
+            /* Adjust individual button width if needed for specific layouts */
+            #input-area button:nth-child(2), /* 🎤 button */
+            #input-area button:nth-child(3), /* Send button */
+            #input-area button:nth-child(4) { /* ⏹️ button */
+                flex-basis: auto; /* Let content dictate width, then grow */
+            }
+        }
+
+        /* Smaller mobile adjustments */
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.1em;
+            }
+            #theme-toggle {
+                padding: 5px 10px;
+                font-size: 0.9em;
+            }
+            #sidebar {
+                padding: 10px;
+            }
+            #sidebar button {
+                padding: 10px 8px;
+                font-size: 0.9em;
+            }
+            #content {
+                padding: 10px;
+            }
+            .controls {
+                gap: 10px;
+                margin-bottom: 10px;
+            }
+            label {
+                font-size: 0.85em;
+            }
+            select, input, #query {
+                padding: 8px;
+                font-size: 0.9em;
+            }
+            #chat {
+                padding: 8px;
+                font-size: 0.9em;
+            }
+            #input-area {
+                gap: 5px;
+            }
+            #input-area button {
+                padding: 10px 8px;
+                font-size: 0.9em;
             }
         }
     </style>
@@ -212,7 +362,10 @@
 <body>
     <header>
         <h1>Local AI Chat with Voice using Ollama</h1>
-        <button id="theme-toggle" aria-label="Toggle dark/light theme">Toggle Theme</button>
+        <div>
+            <button id="theme-toggle" aria-label="Toggle dark/light theme">Toggle Theme</button>
+            <button id="menu-toggle" aria-label="Toggle sidebar menu">☰</button>
+        </div>
     </header>
     <main>
         <div id="sidebar">
@@ -273,6 +426,27 @@
         });
         // Load saved theme
         if (localStorage.getItem('theme') === 'dark') setTheme(true);
+
+        // Mobile Menu Toggle
+        const menuToggle = document.getElementById('menu-toggle');
+        const sidebar = document.getElementById('sidebar');
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+        });
+
+        // Close sidebar when a conversation is loaded (on mobile)
+        document.getElementById('conversation-select').addEventListener('change', () => {
+            if (window.innerWidth <= 768) {
+                sidebar.classList.remove('active');
+            }
+        });
+        document.getElementById('sidebar').addEventListener('click', (event) => {
+            // Close sidebar if a button within it is clicked
+            if (event.target.tagName === 'BUTTON' && window.innerWidth <= 768) {
+                sidebar.classList.remove('active');
+            }
+        });
+
 
         // Show error notification
         function showError(message) {
@@ -452,7 +626,9 @@
         function addMessage(role, content) {
             const chat = document.getElementById('chat');
             const div = document.createElement('div');
-            div.innerHTML = `<strong>${role}:</strong> ${content.replace(/</g, '<').replace(/>/g, '>')}`;
+            // Sanitize content for display
+            const sanitizedContent = content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            div.innerHTML = `<strong>${role}:</strong> ${sanitizedContent}`;
             chat.appendChild(div);
             chat.scrollTop = chat.scrollHeight;
         }
@@ -475,6 +651,7 @@
                 return;
             }
             addMessage('user', query);
+            document.getElementById('query').value = ''; // Clear input immediately
             try {
                 const body = { query, conversationId: currentConversationId, model, maxTokens };
                 const response = await fetch('/query', {
@@ -495,7 +672,6 @@
                 if (voiceObj) {
                     playTTS(data.response, voiceObj);
                 }
-                document.getElementById('query').value = '';
             } catch (error) {
                 showError('Error sending message: ' + error.message);
             }
@@ -560,10 +736,27 @@
             recognition = new webkitSpeechRecognition();
             recognition.continuous = false;
             recognition.interimResults = false;
-            recognition.onresult = event => {
-                document.getElementById('query').value = event.results[0][0].transcript;
+            recognition.lang = 'en-US'; // Set default language
+            recognition.onstart = () => {
+                document.getElementById('query').placeholder = 'Listening...';
+                document.getElementById('query').disabled = true;
             };
-            recognition.onerror = () => showError('Speech recognition error. Please try again.');
+            recognition.onresult = event => {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('query').value = transcript;
+                document.getElementById('query').placeholder = 'Type your message...';
+                document.getElementById('query').disabled = false;
+                sendMessage(); // Automatically send message after speech recognition
+            };
+            recognition.onerror = (event) => {
+                showError('Speech recognition error: ' + event.error + '. Please try again.');
+                document.getElementById('query').placeholder = 'Type your message...';
+                document.getElementById('query').disabled = false;
+            };
+            recognition.onend = () => {
+                document.getElementById('query').placeholder = 'Type your message...';
+                document.getElementById('query').disabled = false;
+            };
             recognition.start();
         }
 
