@@ -266,14 +266,14 @@
                 flex-direction: column;
             }
             #sidebar {
-                width: 100%;
+                width: 50%; /* Changed from 80% */
                 height: auto; /* Allow sidebar to take height naturally */
                 border-right: none;
                 border-bottom: 1px solid #ddd;
                 padding: 15px;
                 position: absolute; /* Position sidebar absolutely for overlay effect */
                 top: 0;
-                left: -100%; /* Initially hide off-screen */
+                left: -50%; /* Changed from -80% to match new width */
                 transition: left 0.3s ease-in-out; /* Smooth transition */
                 z-index: 1000;
                 box-shadow: 0 4px 8px rgba(0,0,0,0.1);
