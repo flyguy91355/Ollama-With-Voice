@@ -394,7 +394,7 @@
             </select>
             <button onclick="newConversation()" aria-label="Start new conversation">New Conversation</button>
             <button onclick="deleteConversation()" aria-label="Delete selected conversation">Delete</button>
-            <button onclick="refreshCache()" aria-label="Refresh models and voices cache">Refresh Cache</button>
+            <button id="refresh-button" onclick="refreshCache()" aria-label="Refresh models and voices cache">Refresh Cache</button>
         </div>
         <div id="content">
             <div class="controls">
@@ -808,14 +808,17 @@
             const sidebarElement = document.getElementById('sidebar');
             const contentElement = document.getElementById('content');
             const inputAreaElement = document.getElementById('input-area');
+            const headerButtonContainer = document.querySelector('header > div');
             
-            // Get references to the buttons that will be moved
+            // Get references to the buttons that will be moved or used for positioning
+            const themeToggleButton = document.getElementById('theme-toggle');
             const micButton = document.getElementById('mic-button');
             const stopButton = document.getElementById('stop-button');
             const sendButton = document.getElementById('send-button'); // Reference for positioning
+            const refreshButton = document.getElementById('refresh-button');
 
             // Failsafe check
-            if (!controlsElement || !sidebarElement || !contentElement || !inputAreaElement || !micButton || !stopButton || !sendButton) {
+            if (!controlsElement || !sidebarElement || !contentElement || !inputAreaElement || !micButton || !stopButton || !sendButton || !themeToggleButton || !headerButtonContainer || !refreshButton) {
                 return;
             }
 
@@ -831,6 +834,10 @@
                 if (!sidebarElement.contains(stopButton)){
                     sidebarElement.appendChild(stopButton);
                 }
+                // Move Theme Toggle button to the sidebar, above the refresh button
+                if (!sidebarElement.contains(themeToggleButton)) {
+                    sidebarElement.insertBefore(themeToggleButton, refreshButton);
+                }
 
             } else {
                 // DESKTOP: If controls aren't in the content area, move them back.
@@ -843,6 +850,10 @@
                 }
                 if(!inputAreaElement.contains(stopButton)){
                     inputAreaElement.appendChild(stopButton);
+                }
+                // Move Theme Toggle back to the header
+                if (!headerButtonContainer.contains(themeToggleButton)) {
+                    headerButtonContainer.prepend(themeToggleButton);
                 }
             }
         }
