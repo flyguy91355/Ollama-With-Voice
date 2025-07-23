@@ -252,6 +252,7 @@
         @media (max-width: 768px) {
             header {
                 padding: 10px;
+                gap: 15px;
             }
             h1 {
                 font-size: 1.3em;
@@ -804,56 +805,72 @@
 
         // *** SCRIPT TO HANDLE RESPONSIVE LAYOUT ***
         function moveControlsForResponsiveLayout() {
+            // Elements to be moved
             const controlsElement = document.querySelector('.controls');
-            const sidebarElement = document.getElementById('sidebar');
-            const contentElement = document.getElementById('content');
-            const inputAreaElement = document.getElementById('input-area');
-            const headerButtonContainer = document.querySelector('header > div');
-            
-            // Get references to the buttons that will be moved or used for positioning
             const themeToggleButton = document.getElementById('theme-toggle');
             const micButton = document.getElementById('mic-button');
             const stopButton = document.getElementById('stop-button');
-            const sendButton = document.getElementById('send-button'); // Reference for positioning
+            const menuToggleButton = document.getElementById('menu-toggle');
+
+            // Container/positioning elements
+            const headerElement = document.querySelector('header');
+            const titleElement = document.querySelector('header > h1');
+            const headerButtonContainer = document.querySelector('header > div');
+            const sidebarElement = document.getElementById('sidebar');
+            const contentElement = document.getElementById('content');
+            const inputAreaElement = document.getElementById('input-area');
+            const sendButton = document.getElementById('send-button');
             const refreshButton = document.getElementById('refresh-button');
 
             // Failsafe check
-            if (!controlsElement || !sidebarElement || !contentElement || !inputAreaElement || !micButton || !stopButton || !sendButton || !themeToggleButton || !headerButtonContainer || !refreshButton) {
+            if (!controlsElement || !themeToggleButton || !micButton || !stopButton || !menuToggleButton || !headerElement || !titleElement || !headerButtonContainer || !sidebarElement || !contentElement || !inputAreaElement || !sendButton || !refreshButton) {
                 return;
             }
 
             if (window.innerWidth <= 768) {
-                // MOBILE: If controls aren't in the sidebar, move them there.
+                // --- MOBILE ---
+
+                // Move menu toggle to the left of the title
+                if (headerButtonContainer.contains(menuToggleButton)) {
+                    headerElement.insertBefore(menuToggleButton, titleElement);
+                }
+                
+                // Move controls, mic, stop, and theme buttons into the sidebar
                 if (!sidebarElement.contains(controlsElement)) {
                     sidebarElement.appendChild(controlsElement);
                 }
-                // Move Mic and Stop buttons to the sidebar
                 if (!sidebarElement.contains(micButton)){
                     sidebarElement.appendChild(micButton);
                 }
                 if (!sidebarElement.contains(stopButton)){
                     sidebarElement.appendChild(stopButton);
                 }
-                // Move Theme Toggle button to the sidebar, above the refresh button
                 if (!sidebarElement.contains(themeToggleButton)) {
                     sidebarElement.insertBefore(themeToggleButton, refreshButton);
                 }
 
             } else {
-                // DESKTOP: If controls aren't in the content area, move them back.
+                // --- DESKTOP ---
+
+                // Move menu toggle back to its original container on the right
+                if (!headerButtonContainer.contains(menuToggleButton)) {
+                    headerButtonContainer.appendChild(menuToggleButton);
+                }
+
+                // Move theme toggle back to its original container
+                if (!headerButtonContainer.contains(themeToggleButton)) {
+                    headerButtonContainer.prepend(themeToggleButton);
+                }
+                
+                // Move other controls back to their original positions
                 if (!contentElement.contains(controlsElement)) {
                     contentElement.prepend(controlsElement);
                 }
-                // Move Mic and Stop buttons back to the input area
                 if(!inputAreaElement.contains(micButton)){
                     inputAreaElement.insertBefore(micButton, sendButton);
                 }
                 if(!inputAreaElement.contains(stopButton)){
                     inputAreaElement.appendChild(stopButton);
-                }
-                // Move Theme Toggle back to the header
-                if (!headerButtonContainer.contains(themeToggleButton)) {
-                    headerButtonContainer.prepend(themeToggleButton);
                 }
             }
         }
