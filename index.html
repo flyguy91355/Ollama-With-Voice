@@ -14,7 +14,7 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f4f4f9;
             color: #333;
-            height: 100vh;
+            height: 100dvh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -124,6 +124,7 @@
             flex-direction: column;
             padding: 20px;
             overflow: hidden;
+			min-height: 0;
         }
         .controls {
             display: flex;
@@ -294,7 +295,7 @@
             }
             #input-area {
                 flex-wrap: wrap; /* Allow buttons to wrap */
-                justify-content: space-between; /* Distribute buttons */
+                justify-content: flex-end; /* Distribute buttons */
                 gap: 8px; /* Smaller gap between buttons */
             }
             #query {
@@ -303,15 +304,15 @@
                 margin-bottom: 8px; /* Space between textarea and buttons */
             }
             #input-area button {
-                flex-grow: 1; /* Allow buttons to grow and fill space */
+                flex-grow: 0; /* Allow buttons to grow and fill space */
                 min-width: calc(33% - 8px); /* Adjust based on desired number of buttons per row */
                 padding: 12px 10px; /* More vertical padding for easier tapping */
                 font-size: 1em;
             }
             /* Adjust individual button width if needed for specific layouts */
-            #input-area button:nth-child(2), /* 🎤 button */
-            #input-area button:nth-child(3), /* Send button */
-            #input-area button:nth-child(4) { /* ⏹️ button */
+            #input-area button#mic-button,
+            #input-area button#send-button,
+            #input-area button#stop-button {
                 flex-basis: auto; /* Let content dictate width, then grow */
             }
         }
@@ -403,9 +404,9 @@
             </div>
             <div id="input-area">
                 <textarea id="query" placeholder="Type your message..." aria-label="Enter your message"></textarea>
-                <button onclick="startRecording()" aria-label="Start voice recording">🎤</button>
-                <button onclick="sendMessage()" aria-label="Send message">Send</button>
-                <button onclick="stopTTS()" aria-label="Stop audio playback">⏹️</button>
+                <button id="mic-button" onclick="startRecording()" aria-label="Start voice recording">🎤</button>
+                <button id="send-button" onclick="sendMessage()" aria-label="Send message">Send</button>
+                <button id="stop-button" onclick="stopTTS()" aria-label="Stop audio playback">⏹️</button>
             </div>
         </div>
     </main>
@@ -774,9 +775,15 @@
             const controlsElement = document.querySelector('.controls');
             const sidebarElement = document.getElementById('sidebar');
             const contentElement = document.getElementById('content');
+            const inputAreaElement = document.getElementById('input-area');
+            
+            // Get references to the buttons that will be moved
+            const micButton = document.getElementById('mic-button');
+            const stopButton = document.getElementById('stop-button');
+            const sendButton = document.getElementById('send-button'); // Reference for positioning
 
             // Failsafe check
-            if (!controlsElement || !sidebarElement || !contentElement) {
+            if (!controlsElement || !sidebarElement || !contentElement || !inputAreaElement || !micButton || !stopButton || !sendButton) {
                 return;
             }
 
@@ -785,10 +792,25 @@
                 if (!sidebarElement.contains(controlsElement)) {
                     sidebarElement.appendChild(controlsElement);
                 }
+                // Move Mic and Stop buttons to the sidebar
+                if (!sidebarElement.contains(micButton)){
+                    sidebarElement.appendChild(micButton);
+                }
+                if (!sidebarElement.contains(stopButton)){
+                    sidebarElement.appendChild(stopButton);
+                }
+
             } else {
                 // DESKTOP: If controls aren't in the content area, move them back.
                 if (!contentElement.contains(controlsElement)) {
                     contentElement.prepend(controlsElement);
+                }
+                // Move Mic and Stop buttons back to the input area
+                if(!inputAreaElement.contains(micButton)){
+                    inputAreaElement.insertBefore(micButton, sendButton);
+                }
+                if(!inputAreaElement.contains(stopButton)){
+                    inputAreaElement.appendChild(stopButton);
                 }
             }
         }
