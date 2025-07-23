@@ -225,16 +225,22 @@
         body.dark #input-area button:hover {
             background-color: #2a5d9a;
         }
-        #error-notification {
+        #error-notification, #status-notification {
             position: fixed;
-            top: 80px;
             right: 20px;
-            background-color: #e74c3c;
             color: white;
             padding: 10px;
             border-radius: 4px;
             display: none;
             z-index: 1002;
+        }
+        #error-notification {
+            top: 80px;
+            background-color: #e74c3c;
+        }
+        #status-notification {
+            top: 130px;
+            background-color: #4a90e2;
         }
         #thinking-notification,
         #tts-loading, #tts-playing {
@@ -384,6 +390,7 @@
         </div>
     </main>
     <div id="error-notification"></div>
+    <div id="status-notification"></div>
 
     <script>
         let currentConversationId = null;
@@ -438,6 +445,13 @@
             notification.textContent = message;
             notification.style.display = 'block';
             setTimeout(() => notification.style.display = 'none', 5000);
+        }
+
+        function showStatus(message) {
+            const notification = document.getElementById('status-notification');
+            notification.textContent = message;
+            notification.style.display = 'block';
+            setTimeout(() => notification.style.display = 'none', 3000);
         }
 
         async function loadModels() {
@@ -688,16 +702,19 @@
             currentAudio = new Audio(audioQueue.shift());
             currentAudio.onended = playNextAudio;
             currentAudio.onerror = () => {
-                showError('Error playing audio');
-                playNextAudio();
+                showError('Error playing audio file.');
+                // Stop playback instead of looping
+                stopTTS();
             };
             currentAudio.play();
         }
 
         function stopTTS() {
+            showStatus('Stopped audio');
             if (currentAudio) {
                 currentAudio.pause();
-                currentAudio.src = '';
+                currentAudio.onended = null;
+                currentAudio.onerror = null;
             }
             audioQueue = [];
             isPlaying = false;
