@@ -277,6 +277,7 @@
             .controls {
                 flex-direction: column;
                 gap: 15px;
+                margin-top: 15px;
                 margin-bottom: 15px;
             }
             .controls > div {
@@ -768,10 +769,43 @@
             }
         });
 
-        // Initial loads
-        loadModels();
-        loadVoices();
-        loadConversations();
+        // *** SCRIPT TO HANDLE RESPONSIVE LAYOUT ***
+        function moveControlsForResponsiveLayout() {
+            const controlsElement = document.querySelector('.controls');
+            const sidebarElement = document.getElementById('sidebar');
+            const contentElement = document.getElementById('content');
+
+            // Failsafe check
+            if (!controlsElement || !sidebarElement || !contentElement) {
+                return;
+            }
+
+            if (window.innerWidth <= 768) {
+                // MOBILE: If controls aren't in the sidebar, move them there.
+                if (!sidebarElement.contains(controlsElement)) {
+                    sidebarElement.appendChild(controlsElement);
+                }
+            } else {
+                // DESKTOP: If controls aren't in the content area, move them back.
+                if (!contentElement.contains(controlsElement)) {
+                    contentElement.prepend(controlsElement);
+                }
+            }
+        }
+
+        // *** LISTENERS AND INITIAL CALLS ***
+
+        // Run layout check on window resize
+        window.addEventListener('resize', moveControlsForResponsiveLayout);
+
+        // Run when the document is fully loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            moveControlsForResponsiveLayout(); // Set the initial layout correctly
+            loadModels();
+            loadVoices();
+            loadConversations();
+        });
+
     </script>
 </body>
 </html>
