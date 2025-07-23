@@ -225,6 +225,7 @@
             display: none;
             z-index: 1000;
         }
+        #thinking-notification,
         #tts-loading, #tts-playing {
             display: none;
             position: absolute;
@@ -233,6 +234,10 @@
             font-size: 0.9em;
             padding: 5px 8px;
             border-radius: 3px;
+        }
+        #thinking-notification {
+            color: #f39c12;
+            background-color: rgba(243, 156, 18, 0.1);
         }
         #tts-loading {
             color: #4a90e2;
@@ -411,6 +416,7 @@
                 </div>
             </div>
             <div id="chat" aria-live="polite">
+                <div id="thinking-notification">Thinking...</div>
                 <div id="tts-loading">Generating audio...</div>
                 <div id="tts-playing">Playing audio...</div>
             </div>
@@ -591,7 +597,7 @@
                 if (!response.ok) throw new Error(`Failed to load conversation: ${response.statusText}`);
                 const history = await response.json();
                 const chat = document.getElementById('chat');
-                chat.innerHTML = '<div id="tts-loading">Generating audio...</div><div id="tts-playing">Playing audio...</div>';
+                chat.innerHTML = '<div id="thinking-notification">Thinking...</div><div id="tts-loading">Generating audio...</div><div id="tts-playing">Playing audio...</div>';
                 history.forEach(msg => {
                     addMessage(msg.role, msg.content);
                 });
@@ -603,7 +609,7 @@
         // New conversation
         function newConversation() {
             currentConversationId = null;
-            document.getElementById('chat').innerHTML = '<div id="tts-loading">Generating audio...</div><div id="tts-playing">Playing audio...</div>';
+            document.getElementById('chat').innerHTML = '<div id="thinking-notification">Thinking...</div><div id="tts-loading">Generating audio...</div><div id="tts-playing">Playing audio...</div>';
             document.getElementById('conversation-select').value = '';
             loadConversations();
         }
@@ -666,6 +672,10 @@
             }
             addMessage('user', query);
             document.getElementById('query').value = ''; // Clear input immediately
+
+            const thinkingNotification = document.getElementById('thinking-notification');
+            thinkingNotification.style.display = 'block';
+
             try {
                 const body = { query, conversationId: currentConversationId, model, maxTokens };
                 const response = await fetch('/query', {
@@ -688,6 +698,8 @@
                 }
             } catch (error) {
                 showError('Error sending message: ' + error.message);
+            } finally {
+                thinkingNotification.style.display = 'none';
             }
         }
 
