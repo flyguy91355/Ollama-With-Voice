@@ -435,6 +435,7 @@
         let audioQueue = [];
         let isPlaying = false;
         let recognition;
+        let currentAudio = null; // Variable to hold the currently playing audio object
 
         // Theme toggle with persistence
         function setTheme(isDark) {
@@ -460,12 +461,13 @@
                 sidebar.classList.remove('active');
             }
         });
-        document.getElementById('sidebar').addEventListener('click', (event) => {
-            // Close sidebar if a button within it is clicked
-            if (event.target.tagName === 'BUTTON' && window.innerWidth <= 768) {
-                sidebar.classList.remove('active');
-            }
-        });
+		document.getElementById('sidebar').addEventListener('click', (event) => {
+			const targetButton = event.target;
+			// Check if the clicked element is a button and NOT the mic or stop button
+			if (targetButton.tagName === 'BUTTON' && targetButton.id !== 'mic-button' && targetButton.id !== 'stop-button' && window.innerWidth <= 768) {
+				sidebar.classList.remove('active');
+				}
+		});
 
 
         // Show error notification
@@ -732,24 +734,30 @@
         function playNextAudio() {
             if (audioQueue.length === 0) {
                 isPlaying = false;
+                currentAudio = null; // Clear the variable when done
                 document.getElementById('tts-playing').style.display = 'none';
                 return;
             }
             isPlaying = true;
             document.getElementById('tts-playing').style.display = 'block';
-            const audio = new Audio(audioQueue.shift());
-            audio.onended = playNextAudio;
-            audio.onerror = () => {
+            currentAudio = new Audio(audioQueue.shift()); // Use the global variable
+            currentAudio.onended = playNextAudio;
+            currentAudio.onerror = () => {
                 showError('Error playing audio');
                 playNextAudio();
             };
-            audio.play();
+            currentAudio.play();
         }
 
         // Stop TTS
         function stopTTS() {
-            audioQueue = [];
+            if (currentAudio) {
+                currentAudio.pause(); // Stop the currently playing audio
+                currentAudio.src = '';   // Optional: release the audio resource
+            }
+            audioQueue = []; // Clear any upcoming audio clips
             isPlaying = false;
+            currentAudio = null;
             document.getElementById('tts-playing').style.display = 'none';
         }
 
