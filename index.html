@@ -410,6 +410,16 @@
             sidebar.classList.toggle('active');
         });
 
+        // Close sidebar when clicking outside of it
+        document.addEventListener('click', function(event) {
+            const isClickInsideSidebar = sidebar.contains(event.target);
+            const isClickOnMenuToggle = menuToggle.contains(event.target);
+
+            if (!isClickInsideSidebar && !isClickOnMenuToggle && sidebar.classList.contains('active')) {
+                sidebar.classList.remove('active');
+            }
+        });
+
         function closeSidebarIfMobile() {
             if (window.innerWidth <= 768) {
                 sidebar.classList.remove('active');
