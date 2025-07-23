@@ -19,7 +19,7 @@
             flex-direction: column;
             overflow: hidden;
         }
-        .dark body {
+        body.dark {
             background-color: #1e1e1e;
             color: #fff;
         }
@@ -33,14 +33,14 @@
             position: relative; /* For mobile menu positioning */
             z-index: 1001; /* Ensure header is above other content */
         }
-        .dark header {
+        body.dark header {
             background-color: #2a2a2a;
         }
         h1 {
             font-size: 1.5em;
             color: #333;
         }
-        .dark h1 {
+        body.dark h1 {
             color: #ffffff;
         }
         #theme-toggle {
@@ -64,7 +64,7 @@
             cursor: pointer;
             padding: 0 10px;
         }
-        .dark #menu-toggle {
+        body.dark #menu-toggle {
             color: #fff;
         }
         main {
@@ -81,7 +81,7 @@
             overflow-y: auto;
             flex-shrink: 0; /* Prevent sidebar from shrinking */
         }
-        .dark #sidebar {
+        body.dark #sidebar {
             background-color: #2a2a2a;
             border-right: 1px solid #444;
         }
@@ -89,7 +89,7 @@
             margin-bottom: 10px;
             color: #333;
         }
-        .dark #sidebar h2 {
+        body.dark #sidebar h2 {
             color: #ffffff;
         }
         #conversation-select {
@@ -99,7 +99,7 @@
             border: 1px solid #ddd;
             border-radius: 4px;
         }
-        .dark #conversation-select {
+        body.dark #conversation-select {
             background-color: #3a3a3a;
             color: #fff;
             border-color: #555;
@@ -117,6 +117,12 @@
         }
         #sidebar button:hover {
             background-color: #3a7bc8;
+        }
+        body.dark #sidebar button {
+            background-color: #3a7bc8;
+        }
+        body.dark #sidebar button:hover {
+            background-color: #2a5d9a;
         }
         #content {
             flex: 1;
@@ -145,7 +151,7 @@
             border: 1px solid #ddd;
             border-radius: 4px;
         }
-        .dark select, .dark input {
+        body.dark select, body.dark input {
             background-color: #3a3a3a;
             color: #fff;
             border-color: #555;
@@ -160,7 +166,7 @@
             margin-bottom: 10px; /* Reduced margin */
             position: relative;
         }
-        .dark #chat {
+        body.dark #chat {
             background-color: #2a2a2a;
             border-color: #444;
             color: #fff;
@@ -185,7 +191,7 @@
             min-height: 40px; /* Ensure a minimum height for textarea */
             resize: vertical; /* Allow vertical resizing */
         }
-        .dark #query {
+        body.dark #query {
             background-color: #3a3a3a;
             color: #fff;
             border-color: #555;
@@ -201,6 +207,12 @@
         }
         #input-area button:hover {
             background-color: #3a7bc8;
+        }
+        body.dark #input-area button {
+            background-color: #3a7bc8;
+        }
+        body.dark #input-area button:hover {
+            background-color: #2a5d9a;
         }
         #error-notification {
             position: fixed;
@@ -264,7 +276,7 @@
             #sidebar.active {
                 left: 0; /* Slide in when active */
             }
-            .dark #sidebar {
+            body.dark #sidebar {
                 box-shadow: 0 4px 8px rgba(0,0,0,0.3);
             }
             #sidebar h2 {
