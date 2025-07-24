@@ -176,6 +176,8 @@
             overflow-y: auto;
             margin-bottom: 10px;
             position: relative;
+            display: flex;
+            flex-direction: column;
         }
         body.dark #chat {
             background-color: #2a2a2a;
@@ -241,28 +243,6 @@
         #status-notification {
             top: 130px;
             background-color: #4a90e2;
-        }
-        #thinking-notification,
-        #tts-loading, #tts-playing {
-            display: none;
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            font-size: 0.9em;
-            padding: 5px 8px;
-            border-radius: 3px;
-        }
-        #thinking-notification {
-            color: #f39c12;
-            background-color: rgba(243, 156, 18, 0.1);
-        }
-        #tts-loading {
-            color: #4a90e2;
-            background-color: rgba(74, 144, 226, 0.1);
-        }
-        #tts-playing {
-            color: #2ecc71;
-            background-color: rgba(46, 204, 113, 0.1);
         }
 
         /* Mobile-specific styles */
@@ -370,10 +350,7 @@
         </div>
         <div id="content">
             <div id="chat" aria-live="polite">
-                <div id="thinking-notification">Thinking...</div>
-                <div id="tts-loading">Generating audio...</div>
-                <div id="tts-playing">Playing audio...</div>
-            </div>
+                </div>
             <div id="input-area">
                 <textarea id="query" placeholder="Type your message..." aria-label="Enter your message"></textarea>
                 <button id="send-button" onclick="sendMessage()" aria-label="Send message">Send</button>
@@ -389,6 +366,9 @@
         let isPlaying = false;
         let recognition;
         let currentAudio = null;
+
+        // --- Element variables ---
+        let queryTextarea, sendButton, micButton, originalPlaceholder;
 
         // Theme toggle with persistence
         const themeToggle = document.getElementById('theme-toggle');
@@ -528,23 +508,13 @@
                         const timestampPart = id.split('_').pop();
                         let timestamp = 'Unknown'; // Default value
                         try {
-                            // The timestamp from the ID (e.g., 'YYYY-MM-DDTHH-mm-ss') needs reformatting.
-                            // This creates a parsable date string like 'YYYY-MM-DD HH:mm:ss'.
                             const parsableDateString = timestampPart.substring(0, 10) + ' ' + timestampPart.substring(11).replace(/-/g, ':');
                             const date = new Date(parsableDateString);
                             if (!isNaN(date.getTime())) {
-                                // If parsing is successful, format the date and time without seconds.
-                                const options = {
-                                    year: 'numeric',
-                                    month: 'numeric',
-                                    day: 'numeric',
-                                    hour: 'numeric',
-                                    minute: '2-digit'
-                                };
+                                const options = { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' };
                                 timestamp = date.toLocaleString(undefined, options);
                             }
                         } catch {
-                             // Fallback to the full ID if parsing throws an error.
                             timestamp = id;
                         }
                         const option = document.createElement('option');
@@ -568,7 +538,7 @@
                 if (!response.ok) throw new Error(`Failed to load conversation: ${response.statusText}`);
                 const history = await response.json();
                 const chat = document.getElementById('chat');
-                chat.innerHTML = '<div id="thinking-notification">Thinking...</div><div id="tts-loading">Generating audio...</div><div id="tts-playing">Playing audio...</div>';
+                chat.innerHTML = ''; // Clear chat
                 history.forEach(msg => {
                     addMessage(msg.role, msg.content);
                 });
@@ -579,7 +549,7 @@
 
         function newConversation() {
             currentConversationId = null;
-            document.getElementById('chat').innerHTML = '<div id="thinking-notification">Thinking...</div><div id="tts-loading">Generating audio...</div><div id="tts-playing">Playing audio...</div>';
+            document.getElementById('chat').innerHTML = '';
             document.getElementById('conversation-select').value = '';
             loadConversations();
         }
@@ -604,7 +574,7 @@
                 const response = await fetch('/refresh-cache', { method: 'POST' });
                 if (!response.ok) throw new Error(`Failed to refresh cache: ${response.statusText}`);
                 await Promise.all([loadModels(), loadVoices()]);
-                showError('Cache refreshed successfully');
+                showStatus('Cache refreshed successfully');
             } catch (error) {
                 showError('Error refreshing cache: ' + error.message);
             }
@@ -620,7 +590,7 @@
         }
 
         async function sendMessage() {
-            const query = document.getElementById('query').value.trim();
+            const query = queryTextarea.value.trim();
             const model = document.getElementById('model-select').value;
             const maxTokens = parseInt(document.getElementById('max-tokens').value);
             if (!query) {
@@ -636,10 +606,14 @@
                 return;
             }
             addMessage('user', query);
-            document.getElementById('query').value = '';
+            queryTextarea.value = '';
 
-            const thinkingNotification = document.getElementById('thinking-notification');
-            thinkingNotification.style.display = 'block';
+            queryTextarea.placeholder = 'Thinking...';
+            queryTextarea.disabled = true;
+            sendButton.disabled = true;
+            micButton.disabled = true;
+            
+            let isAudioPlaybackExpected = false;
 
             try {
                 const body = { query, conversationId: currentConversationId, model, maxTokens };
@@ -659,17 +633,23 @@
                 const voiceSelect = document.getElementById('voice-select');
                 const voiceObj = voiceSelect.value !== 'Select a voice' ? JSON.parse(voiceSelect.value) : null;
                 if (voiceObj) {
+                    isAudioPlaybackExpected = true;
                     playTTS(data.response, voiceObj);
                 }
             } catch (error) {
                 showError('Error sending message: ' + error.message);
             } finally {
-                thinkingNotification.style.display = 'none';
+                if (!isAudioPlaybackExpected) {
+                    queryTextarea.placeholder = originalPlaceholder;
+                    queryTextarea.disabled = false;
+                    sendButton.disabled = false;
+                    micButton.disabled = false;
+                }
             }
         }
 
         async function playTTS(text, voiceObj) {
-            document.getElementById('tts-loading').style.display = 'block';
+            queryTextarea.placeholder = 'Generating audio...';
             try {
                 const response = await fetch('/tts', {
                     method: 'POST',
@@ -684,11 +664,15 @@
                 audioFiles.forEach(file => {
                     if (file) audioQueue.push(file);
                 });
-                if (!isPlaying) playNextAudio();
+                // MODIFIED LINE: This condition now prevents playback if stop was pressed
+                if (!isPlaying && sendButton.disabled) playNextAudio();
             } catch (error) {
                 showError('Error generating audio: ' + error.message);
-            } finally {
-                document.getElementById('tts-loading').style.display = 'none';
+                // Reset UI on TTS failure
+                queryTextarea.placeholder = originalPlaceholder;
+                queryTextarea.disabled = false;
+                sendButton.disabled = false;
+                micButton.disabled = false;
             }
         }
 
@@ -696,16 +680,18 @@
             if (audioQueue.length === 0) {
                 isPlaying = false;
                 currentAudio = null;
-                document.getElementById('tts-playing').style.display = 'none';
+                queryTextarea.placeholder = originalPlaceholder;
+                queryTextarea.disabled = false;
+                sendButton.disabled = false;
+                micButton.disabled = false;
                 return;
             }
             isPlaying = true;
-            document.getElementById('tts-playing').style.display = 'block';
+            queryTextarea.placeholder = 'Playing audio...';
             currentAudio = new Audio(audioQueue.shift());
             currentAudio.onended = playNextAudio;
             currentAudio.onerror = () => {
                 showError('Error playing audio file.');
-                // Stop playback instead of looping
                 stopTTS();
             };
             currentAudio.play();
@@ -721,7 +707,10 @@
             audioQueue = [];
             isPlaying = false;
             currentAudio = null;
-            document.getElementById('tts-playing').style.display = 'none';
+            queryTextarea.placeholder = originalPlaceholder;
+            queryTextarea.disabled = false;
+            sendButton.disabled = false;
+            micButton.disabled = false;
         }
 
         function startRecording() {
@@ -733,19 +722,35 @@
             recognition.continuous = false;
             recognition.interimResults = false;
             recognition.lang = 'en-US';
+            
             recognition.onstart = () => {
-                document.getElementById('mic-button').textContent = '🔴 Listening...';
+                micButton.textContent = '🔴 Listening...';
+                queryTextarea.placeholder = 'Listening...';
+                queryTextarea.disabled = true;
+                sendButton.disabled = true;
             };
+            
             recognition.onresult = event => {
                 const transcript = event.results[0][0].transcript;
-                document.getElementById('query').value = transcript;
+                queryTextarea.value = transcript;
                 sendMessage();
             };
+
             recognition.onerror = (event) => {
                 showError('Speech recognition error: ' + event.error + '. Please try again.');
+                queryTextarea.placeholder = originalPlaceholder;
+                queryTextarea.disabled = false;
+                sendButton.disabled = false;
             };
+
             recognition.onend = () => {
-                document.getElementById('mic-button').innerHTML = '🎤 Start Recording';
+                micButton.innerHTML = '🎤 Start Recording';
+                // Reset only if we haven't handed off to sendMessage
+                if (queryTextarea.placeholder === 'Listening...') {
+                    queryTextarea.placeholder = originalPlaceholder;
+                    queryTextarea.disabled = false;
+                    sendButton.disabled = false;
+                }
             };
             recognition.start();
         }
@@ -758,6 +763,12 @@
         });
         
         document.addEventListener('DOMContentLoaded', () => {
+            // --- Initialize Element Variables ---
+            queryTextarea = document.getElementById('query');
+            sendButton = document.getElementById('send-button');
+            micButton = document.getElementById('mic-button');
+            originalPlaceholder = queryTextarea.placeholder;
+
             loadModels();
             loadVoices();
             loadConversations();
