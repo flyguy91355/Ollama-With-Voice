@@ -526,13 +526,25 @@
                         const conversation = await convResponse.json();
                         const firstMessage = conversation[0]?.content || id;
                         const timestampPart = id.split('_').pop();
-                        let timestamp = 'Unknown';
+                        let timestamp = 'Unknown'; // Default value
                         try {
-                            const date = new Date(timestampPart.replace(/-/g, ':'));
+                            // The timestamp from the ID (e.g., 'YYYY-MM-DDTHH-mm-ss') needs reformatting.
+                            // This creates a parsable date string like 'YYYY-MM-DD HH:mm:ss'.
+                            const parsableDateString = timestampPart.substring(0, 10) + ' ' + timestampPart.substring(11).replace(/-/g, ':');
+                            const date = new Date(parsableDateString);
                             if (!isNaN(date.getTime())) {
-                                timestamp = date.toLocaleString();
+                                // If parsing is successful, format the date and time without seconds.
+                                const options = {
+                                    year: 'numeric',
+                                    month: 'numeric',
+                                    day: 'numeric',
+                                    hour: 'numeric',
+                                    minute: '2-digit'
+                                };
+                                timestamp = date.toLocaleString(undefined, options);
                             }
                         } catch {
+                             // Fallback to the full ID if parsing throws an error.
                             timestamp = id;
                         }
                         const option = document.createElement('option');
@@ -548,7 +560,6 @@
                 showError('Error loading conversations: ' + error.message);
             }
         }
-
         async function loadConversation(id) {
             if (!id) return;
             currentConversationId = id;
