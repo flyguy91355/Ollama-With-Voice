@@ -268,37 +268,35 @@
         /* Mobile-specific styles */
         @media (max-width: 768px) {
             h1 {
-                font-size: 1.3em;
+                font-size: 1.2em;
             }
             #sidebar {
                  width: 80%;
                  left: -80%;
             }
-            #content {
-                padding: 15px;
+            #sidebar button {
+                font-size: 0.85em;
+                padding: 6px;
             }
-            select, input, #query {
+            #content {
                 padding: 10px;
-                font-size: 1em;
             }
             #chat {
-                margin-bottom: 15px;
-                padding: 12px;
-                font-size: 0.95em;
+                margin-bottom: 10px;
+                padding: 10px;
             }
             #input-area {
-                flex-wrap: wrap;
+                /* Removed flex-wrap to keep items on one line */
                 gap: 8px;
             }
             #query {
-                width: 100%;
-                min-height: 80px;
-                margin-bottom: 8px;
+                /* Removed width and margin overrides */
+                min-height: 40px; 
             }
             #input-area button {
-                flex-grow: 1;
-                padding: 12px 10px;
-                font-size: 1em;
+                /* Removed flex-grow and reduced size */
+                padding: 8px 12px;
+                font-size: 0.8em;
             }
         }
 
@@ -307,28 +305,21 @@
                 font-size: 1.1em;
             }
             #sidebar button {
-                font-size: 0.9em;
+                font-size: 0.8em;
+                padding: 5px;
             }
             #content {
-                padding: 10px;
+                padding: 10px 5px;
             }
             label {
-                font-size: 0.85em;
-            }
-            select, input, #query {
-                padding: 8px;
-                font-size: 0.9em;
-            }
-            #chat {
-                padding: 8px;
-                font-size: 0.9em;
+                font-size: 0.8em;
             }
             #input-area {
                 gap: 5px;
             }
             #input-area button {
-                padding: 10px 8px;
-                font-size: 0.9em;
+                padding: 8px 10px;
+                font-size: 0.75em;
             }
         }
     </style>
