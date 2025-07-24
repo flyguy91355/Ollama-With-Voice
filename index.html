@@ -120,11 +120,23 @@
         #sidebar button:hover {
             background-color: #3a7bc8;
         }
+        #sidebar button.active-mode {
+            background-color: #c0392b;
+        }
+        #sidebar button.active-mode:hover {
+            background-color: #e74c3c;
+        }
         body.dark #sidebar button {
             background-color: #3a7bc8;
         }
         body.dark #sidebar button:hover {
             background-color: #2a5d9a;
+        }
+        body.dark #sidebar button.active-mode {
+            background-color: #c0392b;
+        }
+        body.dark #sidebar button.active-mode:hover {
+            background-color: #e74c3c;
         }
         .sidebar-divider {
             border: none;
@@ -266,15 +278,12 @@
                 padding: 10px;
             }
             #input-area {
-                /* Removed flex-wrap to keep items on one line */
                 gap: 8px;
             }
             #query {
-                /* Removed width and margin overrides */
                 min-height: 40px; 
             }
             #input-area button {
-                /* Removed flex-grow and reduced size */
                 padding: 8px 12px;
                 font-size: 0.8em;
             }
@@ -344,7 +353,8 @@
             </div>
 
             <hr class="sidebar-divider">
-
+            
+            <button id="conversation-mode-toggle" aria-label="Toggle continuous conversation mode">🎙️ Conversation Mode</button>
             <button id="mic-button" onclick="startRecording()" aria-label="Start voice recording">🎤 Start Recording</button>
             <button id="stop-button" onclick="stopTTS()" aria-label="Stop audio playback">⏹️ Stop Playback</button>
         </div>
@@ -366,9 +376,10 @@
         let isPlaying = false;
         let recognition;
         let currentAudio = null;
+        let isConversationModeActive = false;
 
         // --- Element variables ---
-        let queryTextarea, sendButton, micButton, originalPlaceholder;
+        let queryTextarea, sendButton, micButton, conversationModeToggle, originalPlaceholder;
 
         // Theme toggle with persistence
         const themeToggle = document.getElementById('theme-toggle');
@@ -612,6 +623,7 @@
             queryTextarea.disabled = true;
             sendButton.disabled = true;
             micButton.disabled = true;
+            conversationModeToggle.disabled = true;
             
             let isAudioPlaybackExpected = false;
 
@@ -634,6 +646,9 @@
                 const voiceObj = voiceSelect.value !== 'Select a voice' ? JSON.parse(voiceSelect.value) : null;
                 if (voiceObj) {
                     isAudioPlaybackExpected = true;
+                    if (isConversationModeActive && recognition) {
+                        recognition.stop();
+                    }
                     playTTS(data.response, voiceObj);
                 }
             } catch (error) {
@@ -643,7 +658,11 @@
                     queryTextarea.placeholder = originalPlaceholder;
                     queryTextarea.disabled = false;
                     sendButton.disabled = false;
-                    micButton.disabled = false;
+                    micButton.disabled = isConversationModeActive;
+                    conversationModeToggle.disabled = false;
+                    if (isConversationModeActive) {
+                        startContinuousRecognition();
+                    }
                 }
             }
         }
@@ -664,15 +683,14 @@
                 audioFiles.forEach(file => {
                     if (file) audioQueue.push(file);
                 });
-                // MODIFIED LINE: This condition now prevents playback if stop was pressed
                 if (!isPlaying && sendButton.disabled) playNextAudio();
             } catch (error) {
                 showError('Error generating audio: ' + error.message);
-                // Reset UI on TTS failure
                 queryTextarea.placeholder = originalPlaceholder;
                 queryTextarea.disabled = false;
                 sendButton.disabled = false;
-                micButton.disabled = false;
+                micButton.disabled = isConversationModeActive;
+                conversationModeToggle.disabled = false;
             }
         }
 
@@ -683,7 +701,11 @@
                 queryTextarea.placeholder = originalPlaceholder;
                 queryTextarea.disabled = false;
                 sendButton.disabled = false;
-                micButton.disabled = false;
+                micButton.disabled = isConversationModeActive;
+                conversationModeToggle.disabled = false;
+                if (isConversationModeActive) {
+                    startContinuousRecognition();
+                }
                 return;
             }
             isPlaying = true;
@@ -710,7 +732,12 @@
             queryTextarea.placeholder = originalPlaceholder;
             queryTextarea.disabled = false;
             sendButton.disabled = false;
-            micButton.disabled = false;
+            micButton.disabled = isConversationModeActive;
+            conversationModeToggle.disabled = false;
+
+            if (isConversationModeActive) {
+                startContinuousRecognition();
+            }
         }
 
         function startRecording() {
@@ -745,7 +772,6 @@
 
             recognition.onend = () => {
                 micButton.innerHTML = '🎤 Start Recording';
-                // Reset only if we haven't handed off to sendMessage
                 if (queryTextarea.placeholder === 'Listening...') {
                     queryTextarea.placeholder = originalPlaceholder;
                     queryTextarea.disabled = false;
@@ -755,6 +781,84 @@
             recognition.start();
         }
 
+        // --- Conversation Mode Functions ---
+
+        function toggleConversationMode() {
+            isConversationModeActive = !isConversationModeActive;
+            if (isConversationModeActive) {
+                startContinuousRecognition();
+                conversationModeToggle.innerHTML = '🔴 Listening... (Stop)';
+                conversationModeToggle.classList.add('active-mode');
+                micButton.disabled = true;
+            } else {
+                stopContinuousRecognition();
+            }
+        }
+
+        function startContinuousRecognition() {
+            if (!('webkitSpeechRecognition' in window)) {
+                showError('Speech recognition not supported in this browser.');
+                isConversationModeActive = false; 
+                return;
+            }
+            
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+            
+            // MODIFIED: Added onstart handler to change placeholder
+            recognition.onstart = () => {
+                queryTextarea.placeholder = 'Listening...';
+            };
+
+            recognition.onresult = (event) => {
+                let final_transcript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        final_transcript += event.results[i][0].transcript;
+                    }
+                }
+                
+                final_transcript = final_transcript.trim();
+                if (final_transcript) {
+                    queryTextarea.value = final_transcript;
+                    recognition.stop();
+                    sendMessage();
+                }
+            };
+
+            recognition.onerror = (event) => {
+                if (event.error === 'no-speech') {
+                    return; 
+                }
+                showError('Speech recognition error: ' + event.error);
+                stopContinuousRecognition();
+            };
+
+            recognition.onend = () => {
+                if (isConversationModeActive && !isPlaying) {
+                    recognition.start();
+                }
+            };
+            
+            recognition.start();
+        }
+
+        function stopContinuousRecognition() {
+            if (recognition) {
+                recognition.stop();
+            }
+            isConversationModeActive = false;
+            conversationModeToggle.innerHTML = '🎙️ Conversation Mode';
+            conversationModeToggle.classList.remove('active-mode');
+            micButton.disabled = false;
+            // MODIFIED: Reset placeholder when mode is stopped
+            queryTextarea.placeholder = originalPlaceholder;
+            showStatus('Conversation mode stopped.');
+        }
+
+
         document.getElementById('query').addEventListener('keydown', (event) => {
             if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
@@ -763,11 +867,13 @@
         });
         
         document.addEventListener('DOMContentLoaded', () => {
-            // --- Initialize Element Variables ---
             queryTextarea = document.getElementById('query');
             sendButton = document.getElementById('send-button');
             micButton = document.getElementById('mic-button');
+            conversationModeToggle = document.getElementById('conversation-mode-toggle');
             originalPlaceholder = queryTextarea.placeholder;
+
+            conversationModeToggle.addEventListener('click', toggleConversationMode);
 
             loadModels();
             loadVoices();
