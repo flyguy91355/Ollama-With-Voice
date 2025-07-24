@@ -225,16 +225,22 @@
         body.dark #input-area button:hover {
             background-color: #2a5d9a;
         }
-        #error-notification {
+        #error-notification, #status-notification {
             position: fixed;
-            top: 80px;
             right: 20px;
-            background-color: #e74c3c;
             color: white;
             padding: 10px;
             border-radius: 4px;
             display: none;
             z-index: 1002;
+        }
+        #error-notification {
+            top: 80px;
+            background-color: #e74c3c;
+        }
+        #status-notification {
+            top: 130px;
+            background-color: #4a90e2;
         }
         #thinking-notification,
         #tts-loading, #tts-playing {
@@ -262,37 +268,35 @@
         /* Mobile-specific styles */
         @media (max-width: 768px) {
             h1 {
-                font-size: 1.3em;
+                font-size: 1.2em;
             }
             #sidebar {
                  width: 80%;
                  left: -80%;
             }
-            #content {
-                padding: 15px;
+            #sidebar button {
+                font-size: 0.85em;
+                padding: 6px;
             }
-            select, input, #query {
+            #content {
                 padding: 10px;
-                font-size: 1em;
             }
             #chat {
-                margin-bottom: 15px;
-                padding: 12px;
-                font-size: 0.95em;
+                margin-bottom: 10px;
+                padding: 10px;
             }
             #input-area {
-                flex-wrap: wrap;
+                /* Removed flex-wrap to keep items on one line */
                 gap: 8px;
             }
             #query {
-                width: 100%;
-                min-height: 80px;
-                margin-bottom: 8px;
+                /* Removed width and margin overrides */
+                min-height: 40px; 
             }
             #input-area button {
-                flex-grow: 1;
-                padding: 12px 10px;
-                font-size: 1em;
+                /* Removed flex-grow and reduced size */
+                padding: 8px 12px;
+                font-size: 0.8em;
             }
         }
 
@@ -301,28 +305,21 @@
                 font-size: 1.1em;
             }
             #sidebar button {
-                font-size: 0.9em;
+                font-size: 0.8em;
+                padding: 5px;
             }
             #content {
-                padding: 10px;
+                padding: 10px 5px;
             }
             label {
-                font-size: 0.85em;
-            }
-            select, input, #query {
-                padding: 8px;
-                font-size: 0.9em;
-            }
-            #chat {
-                padding: 8px;
-                font-size: 0.9em;
+                font-size: 0.8em;
             }
             #input-area {
                 gap: 5px;
             }
             #input-area button {
-                padding: 10px 8px;
-                font-size: 0.9em;
+                padding: 8px 10px;
+                font-size: 0.75em;
             }
         }
     </style>
@@ -384,6 +381,7 @@
         </div>
     </main>
     <div id="error-notification"></div>
+    <div id="status-notification"></div>
 
     <script>
         let currentConversationId = null;
@@ -438,6 +436,13 @@
             notification.textContent = message;
             notification.style.display = 'block';
             setTimeout(() => notification.style.display = 'none', 5000);
+        }
+
+        function showStatus(message) {
+            const notification = document.getElementById('status-notification');
+            notification.textContent = message;
+            notification.style.display = 'block';
+            setTimeout(() => notification.style.display = 'none', 3000);
         }
 
         async function loadModels() {
@@ -521,13 +526,25 @@
                         const conversation = await convResponse.json();
                         const firstMessage = conversation[0]?.content || id;
                         const timestampPart = id.split('_').pop();
-                        let timestamp = 'Unknown';
+                        let timestamp = 'Unknown'; // Default value
                         try {
-                            const date = new Date(timestampPart.replace(/-/g, ':'));
+                            // The timestamp from the ID (e.g., 'YYYY-MM-DDTHH-mm-ss') needs reformatting.
+                            // This creates a parsable date string like 'YYYY-MM-DD HH:mm:ss'.
+                            const parsableDateString = timestampPart.substring(0, 10) + ' ' + timestampPart.substring(11).replace(/-/g, ':');
+                            const date = new Date(parsableDateString);
                             if (!isNaN(date.getTime())) {
-                                timestamp = date.toLocaleString();
+                                // If parsing is successful, format the date and time without seconds.
+                                const options = {
+                                    year: 'numeric',
+                                    month: 'numeric',
+                                    day: 'numeric',
+                                    hour: 'numeric',
+                                    minute: '2-digit'
+                                };
+                                timestamp = date.toLocaleString(undefined, options);
                             }
                         } catch {
+                             // Fallback to the full ID if parsing throws an error.
                             timestamp = id;
                         }
                         const option = document.createElement('option');
@@ -543,7 +560,6 @@
                 showError('Error loading conversations: ' + error.message);
             }
         }
-
         async function loadConversation(id) {
             if (!id) return;
             currentConversationId = id;
@@ -688,16 +704,19 @@
             currentAudio = new Audio(audioQueue.shift());
             currentAudio.onended = playNextAudio;
             currentAudio.onerror = () => {
-                showError('Error playing audio');
-                playNextAudio();
+                showError('Error playing audio file.');
+                // Stop playback instead of looping
+                stopTTS();
             };
             currentAudio.play();
         }
 
         function stopTTS() {
+            showStatus('Stopped audio');
             if (currentAudio) {
                 currentAudio.pause();
-                currentAudio.src = '';
+                currentAudio.onended = null;
+                currentAudio.onerror = null;
             }
             audioQueue = [];
             isPlaying = false;
