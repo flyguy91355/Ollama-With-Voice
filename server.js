@@ -229,6 +229,53 @@ async function runServer() {
     return chunks.filter(chunk => chunk.length > 0);
   }
 
+  // Helper function to process streaming response from Ollama
+  async function processStreamingResponse(ollamaResponse, clientResponse, history, conversationId) {
+    const reader = ollamaResponse.body.getReader();
+    const decoder = new TextDecoder();
+    let fullResponse = '';
+    
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n').filter(line => line.trim() !== '');
+      
+      for (const line of lines) {
+        try {
+          const data = JSON.parse(line);
+          if (data.message?.content) {
+            const content = data.message.content;
+            fullResponse += content;
+            // Remove <think> tags from streaming content
+            const thinkRegex = new RegExp('<think>[^<]*</think>', 'g');
+            const cleanContent = content.replace(thinkRegex, '');
+            if (cleanContent) {
+              clientResponse.write(`data: ${JSON.stringify({ content: cleanContent, done: false })}\n\n`);
+              // Force flush the response
+              if (clientResponse.flush) clientResponse.flush();
+            }
+          }
+          if (data.done) {
+            // Clean the full response and save to history
+            const thinkRegex = new RegExp('<think>[^<]*</think>', 'g');
+            const cleanFullResponse = fullResponse.replace(thinkRegex, '').trim();
+            history.push({ role: 'assistant', content: cleanFullResponse });
+            conversationCache.set(conversationId, history);
+            const filePath = path.join(conversationsDir, `${conversationId}.json`);
+            await fs.writeFile(filePath, JSON.stringify(history, null, 2)).catch(err => logger.error('Error saving conversation:', err));
+            clientResponse.write(`data: ${JSON.stringify({ content: '', done: true, conversationId })}\n\n`);
+            clientResponse.end();
+            return;
+          }
+        } catch (parseError) {
+          logger.warn('Failed to parse streaming chunk:', parseError.message);
+        }
+      }
+    }
+  }
+
   // ─── Routes ────────────────────────────────────────────────────────────────────
 
   app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
@@ -501,7 +548,7 @@ async function runServer() {
   });
 
   app.post('/query', queryLimiter, async (req, res) => {
-    let { query, conversationId, model, maxTokens = 200 } = req.body;
+    let { query, conversationId, model, maxTokens = 200, stream = false } = req.body;
     const queryError = validateStringInput(query, 1000, 'Query');
     const modelError = validateStringInput(model, 100, 'Model');
     if (queryError || modelError) {
@@ -543,66 +590,127 @@ async function runServer() {
       let answer;
       if (service === 'ollama') {
         const options = maxTokens ? { num_predict: parseInt(maxTokens) } : {};
-        let body = { model, messages, stream: false, options, think: true };
-        let response = await fetch('http://127.0.0.1:11434/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        });
-        if (!response.ok) {
-          const errorText = await response.text();
-          if (errorText.includes('does not support thinking')) {
-            logger.info(`Model ${model} does not support thinking; retrying without`);
-            body.think = false;
-            response = await fetch('http://127.0.0.1:11434/api/chat', {
+        let body = { model, messages, stream, options, think: true };
+        
+        if (stream) {
+          // Set up Server-Sent Events for streaming
+          res.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Cache-Control',
+            'X-Accel-Buffering': 'no' // Disable nginx buffering
+          });
+
+          // Send initial connection confirmation
+          res.write(': connected\n\n');
+
+          let fullResponse = '';
+          
+          try {
+            const response = await fetch('http://127.0.0.1:11434/api/chat', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(body)
             });
-          } else {
+            
+            if (!response.ok) {
+              const errorText = await response.text();
+              if (errorText.includes('does not support thinking')) {
+                logger.info(`Model ${model} does not support thinking; retrying without`);
+                body.think = false;
+                const retryResponse = await fetch('http://127.0.0.1:11434/api/chat', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(body)
+                });
+                if (!retryResponse.ok) {
+                  throw new Error(`Ollama API error: ${retryResponse.statusText}`);
+                }
+                
+                await processStreamingResponse(retryResponse, res, history, conversationId);
+              } else {
+                throw new Error(`Ollama API error: ${response.statusText}`);
+              }
+            } else {
+              await processStreamingResponse(response, res, history, conversationId);
+            }
+          } catch (streamError) {
+            logger.error(`Streaming error for model ${model}: ${streamError.message}`);
+            res.write(`data: ${JSON.stringify({ error: streamError.message, done: true })}\n\n`);
+            res.end();
+            return;
+          }
+        } else {
+          // Non-streaming mode (original logic)
+          let response = await fetch('http://127.0.0.1:11434/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+          if (!response.ok) {
+            const errorText = await response.text();
+            if (errorText.includes('does not support thinking')) {
+              logger.info(`Model ${model} does not support thinking; retrying without`);
+              body.think = false;
+              response = await fetch('http://127.0.0.1:11434/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+              });
+            } else {
+              logger.error(`Ollama API error for model ${model}: Status ${response.status}, Response: ${errorText}`);
+              throw new Error(`Ollama API error: ${response.statusText}`);
+            }
+          }
+          if (!response.ok) {
+            const errorText = await response.text();
             logger.error(`Ollama API error for model ${model}: Status ${response.status}, Response: ${errorText}`);
             throw new Error(`Ollama API error: ${response.statusText}`);
           }
-        }
-        if (!response.ok) {
-          const errorText = await response.text();
-          logger.error(`Ollama API error for model ${model}: Status ${response.status}, Response: ${errorText}`);
-          throw new Error(`Ollama API error: ${response.statusText}`);
-        }
-        let data = await response.json();
-        // Handle various response formats
-        let content = null;
-        if (Array.isArray(data)) {
-          // Concatenate content from array responses
-          content = data.map(item => item.message?.content || item.response || '').join(' ').trim();
-        } else if (data.message?.content) {
-          content = data.message.content;
-        } else if (data.response) {
-          content = data.response;
-        } else if (data.choices && data.choices[0].message.content) {
-          content = data.choices[0].message.content;
-        }
-        if (!content) {
-          logger.error(`Invalid Ollama response for model ${model}:`, JSON.stringify(data, null, 2));
-          answer = 'Model failed to generate a response. Please try again.';
-        } else {
-          // Robust regex for <think> tag removal using new RegExp
-          const thinkRegex = new RegExp('<think>[^<]*</think>', 'g');
-          answer = String(content).replace(thinkRegex, '').trim();
+          let data = await response.json();
+          // Handle various response formats
+          let content = null;
+          if (Array.isArray(data)) {
+            // Concatenate content from array responses
+            content = data.map(item => item.message?.content || item.response || '').join(' ').trim();
+          } else if (data.message?.content) {
+            content = data.message.content;
+          } else if (data.response) {
+            content = data.response;
+          } else if (data.choices && data.choices[0].message.content) {
+            content = data.choices[0].message.content;
+          }
+          if (!content) {
+            logger.error(`Invalid Ollama response for model ${model}:`, JSON.stringify(data, null, 2));
+            answer = 'Model failed to generate a response. Please try again.';
+          } else {
+            // Robust regex for <think> tag removal using new RegExp
+            const thinkRegex = new RegExp('<think>[^<]*</think>', 'g');
+            answer = String(content).replace(thinkRegex, '').trim();
+          }
         }
       } else {
         answer = await callExternalAPI(service, model, messages, apiKeys[service], maxTokens);
       }
 
-      history.push({ role: 'assistant', content: answer });
-      conversationCache.set(conversationId, history);
-      const filePath = path.join(conversationsDir, `${conversationId}.json`);
-      await fs.writeFile(filePath, JSON.stringify(history, null, 2)).catch(err => logger.error('Error saving conversation:', err));
+      if (!stream) {
+        history.push({ role: 'assistant', content: answer });
+        conversationCache.set(conversationId, history);
+        const filePath = path.join(conversationsDir, `${conversationId}.json`);
+        await fs.writeFile(filePath, JSON.stringify(history, null, 2)).catch(err => logger.error('Error saving conversation:', err));
 
-      res.json({ response: answer, conversationId });
+        res.json({ response: answer, conversationId });
+      }
     } catch (error) {
-      logger.error(`Query error for model ${model}: ${error.message}`);
-      res.status(500).json({ error: `Query error: ${error.message}` });
+      if (stream) {
+        res.write(`data: ${JSON.stringify({ error: error.message, done: true })}\n\n`);
+        res.end();
+      } else {
+        logger.error(`Query error for model ${model}: ${error.message}`);
+        res.status(500).json({ error: `Query error: ${error.message}` });
+      }
     }
   });
 

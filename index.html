@@ -200,6 +200,28 @@
             margin-bottom: 10px;
             line-height: 1.4;
         }
+        .message {
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        .message strong {
+            color: #0066cc;
+            text-transform: capitalize;
+        }
+        body.dark .message strong {
+            color: #4da6ff;
+        }
+        .message-content {
+            display: inline;
+        }
+        .streaming {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
         #chat div strong {
             text-transform: capitalize;
         }
@@ -349,6 +371,12 @@
                 <div>
                     <label for="max-tokens">Max Tokens</label>
                     <input type="number" id="max-tokens" value="200" min="1" max="1000" aria-label="Set maximum tokens for response">
+                </div>
+                <div>
+                    <label for="streaming-toggle">
+                        <input type="checkbox" id="streaming-toggle" checked aria-label="Enable streaming responses">
+                        Streaming
+                    </label>
                 </div>
             </div>
 
@@ -591,19 +619,38 @@
             }
         }
 
+        function formatMessage(content) {
+            // Basic formatting: escape HTML and preserve line breaks
+            return content.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+        }
+
         function addMessage(role, content) {
             const chat = document.getElementById('chat');
             const div = document.createElement('div');
-            const sanitizedContent = content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            div.innerHTML = `<strong>${role}:</strong> ${sanitizedContent}`;
+            div.className = 'message';
+            
+            const roleSpan = document.createElement('strong');
+            roleSpan.textContent = `${role}: `;
+            
+            const contentSpan = document.createElement('span');
+            contentSpan.className = 'message-content';
+            contentSpan.innerHTML = formatMessage(content);
+            
+            div.appendChild(roleSpan);
+            div.appendChild(contentSpan);
+            
             chat.appendChild(div);
             chat.scrollTop = chat.scrollHeight;
+            
+            return div; // Return the message div for streaming updates
         }
 
         async function sendMessage() {
             const query = queryTextarea.value.trim();
             const model = document.getElementById('model-select').value;
             const maxTokens = parseInt(document.getElementById('max-tokens').value);
+            const streamingEnabled = document.getElementById('streaming-toggle').checked;
+            
             if (!query) {
                 showError('Please enter a message');
                 return;
@@ -616,6 +663,7 @@
                 showError('Max tokens must be between 1 and 1000');
                 return;
             }
+            
             addMessage('user', query);
             queryTextarea.value = '';
 
@@ -627,28 +675,171 @@
             let isAudioPlaybackExpected = false;
 
             try {
-                const body = { query, conversationId: currentConversationId, model, maxTokens };
-                const response = await fetch('/query', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || `Query failed: ${response.statusText}`);
-                }
-                const data = await response.json();
-                currentConversationId = data.conversationId;
-                addMessage('assistant', data.response);
-                loadConversations();
-                const voiceSelect = document.getElementById('voice-select');
-                const voiceObj = voiceSelect.value !== 'Select a voice' ? JSON.parse(voiceSelect.value) : null;
-                if (voiceObj) {
-                    isAudioPlaybackExpected = true;
-                    if (isConversationModeActive && recognition) {
-                        recognition.stop();
+                const body = { 
+                    query, 
+                    conversationId: currentConversationId, 
+                    model, 
+                    maxTokens,
+                    stream: streamingEnabled 
+                };
+
+                if (streamingEnabled) {
+                    // Handle streaming response
+                    const response = await fetch('/query', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || `Query failed: ${response.statusText}`);
                     }
-                    playTTS(data.response, voiceObj);
+
+                    // Re-enable UI immediately for streaming mode
+                    queryTextarea.placeholder = 'AI is responding...';
+                    queryTextarea.disabled = false;
+                    sendButton.disabled = false;
+                    micButton.disabled = isConversationModeActive;
+                    conversationModeToggle.disabled = false;
+                    if (isConversationModeActive) {
+                        startContinuousRecognition();
+                    }
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let assistantMessageDiv = null;
+                    let fullResponse = '';
+                    let buffer = '';
+
+                    try {
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            
+                            if (done) {
+                                // Process any remaining buffer
+                                if (buffer.trim()) {
+                                    const lines = buffer.split('\n').filter(line => line.trim() !== '');
+                                    for (const line of lines) {
+                                        if (line.startsWith('data: ')) {
+                                            try {
+                                                const data = JSON.parse(line.slice(6));
+                                                if (data.done) {
+                                                    if (assistantMessageDiv) {
+                                                        assistantMessageDiv.classList.remove('streaming');
+                                                    }
+                                                    currentConversationId = data.conversationId;
+                                                    loadConversations();
+                                                    queryTextarea.placeholder = originalPlaceholder;
+                                                }
+                                            } catch (parseError) {
+                                                console.warn('Failed to parse final streaming data:', parseError.message);
+                                            }
+                                        }
+                                    }
+                                }
+                                break;
+                            }
+
+                            // Decode the chunk and add to buffer
+                            const chunk = decoder.decode(value, { stream: true });
+                            buffer += chunk;
+
+                            // Process complete lines from buffer
+                            const lines = buffer.split('\n');
+                            buffer = lines.pop() || ''; // Keep incomplete line in buffer
+                            
+                            for (const line of lines) {
+                                if (line.trim() && line.startsWith('data: ')) {
+                                    try {
+                                        const data = JSON.parse(line.slice(6));
+                                        
+                                        if (data.error) {
+                                            throw new Error(data.error);
+                                        }
+                                        
+                                        if (data.content) {
+                                            fullResponse += data.content;
+                                            
+                                            // Create assistant message div if it doesn't exist
+                                            if (!assistantMessageDiv) {
+                                                assistantMessageDiv = addMessage('assistant', '');
+                                                assistantMessageDiv.classList.add('streaming');
+                                            }
+                                            
+                                            // Update the message content with streaming text immediately
+                                            const messageContent = assistantMessageDiv.querySelector('.message-content');
+                                            messageContent.innerHTML = formatMessage(fullResponse);
+                                            
+                                            // Auto-scroll to bottom
+                                            const chat = document.getElementById('chat');
+                                            chat.scrollTop = chat.scrollHeight;
+                                        }
+                                        
+                                        if (data.done) {
+                                            // Remove streaming animation
+                                            if (assistantMessageDiv) {
+                                                assistantMessageDiv.classList.remove('streaming');
+                                            }
+                                            
+                                            currentConversationId = data.conversationId;
+                                            loadConversations();
+                                            
+                                            // Reset placeholder
+                                            queryTextarea.placeholder = originalPlaceholder;
+                                            
+                                            // Handle TTS for the complete response
+                                            const voiceSelect = document.getElementById('voice-select');
+                                            const voiceObj = voiceSelect.value !== 'Select a voice' ? JSON.parse(voiceSelect.value) : null;
+                                            if (voiceObj && fullResponse.trim()) {
+                                                if (isConversationModeActive && recognition) {
+                                                    recognition.stop();
+                                                }
+                                                // For streaming mode, play TTS in background without disabling UI
+                                                playTTSBackground(fullResponse, voiceObj);
+                                            }
+                                            break;
+                                        }
+                                    } catch (parseError) {
+                                        console.warn('Failed to parse streaming data:', parseError.message);
+                                    }
+                                }
+                            }
+                        }
+                    } finally {
+                        reader.releaseLock();
+                    }
+                    
+                    // For streaming mode, don't set isAudioPlaybackExpected here
+                    // because we already handled UI re-enabling above
+                    return; // Exit early to avoid the finally block
+                } else {
+                    // Handle non-streaming response (original logic)
+                    const response = await fetch('/query', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || `Query failed: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    currentConversationId = data.conversationId;
+                    addMessage('assistant', data.response);
+                    loadConversations();
+                    
+                    const voiceSelect = document.getElementById('voice-select');
+                    const voiceObj = voiceSelect.value !== 'Select a voice' ? JSON.parse(voiceSelect.value) : null;
+                    if (voiceObj) {
+                        isAudioPlaybackExpected = true;
+                        if (isConversationModeActive && recognition) {
+                            recognition.stop();
+                        }
+                        playTTS(data.response, voiceObj);
+                    }
                 }
             } catch (error) {
                 showError('Error sending message: ' + error.message);
@@ -693,6 +884,36 @@
             }
         }
 
+        async function playTTSBackground(text, voiceObj) {
+            // Background TTS for streaming mode - doesn't disable UI
+            const originalPlaceholderValue = queryTextarea.placeholder;
+            queryTextarea.placeholder = 'Generating audio...';
+            
+            try {
+                const response = await fetch('/tts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text, voiceObj })
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `TTS failed: ${response.statusText}`);
+                }
+                const { audioFiles } = await response.json();
+                audioFiles.forEach(file => {
+                    if (file) audioQueue.push(file);
+                });
+                if (!isPlaying) playNextAudioBackground();
+            } catch (error) {
+                showError('Error generating audio: ' + error.message);
+            } finally {
+                // Restore placeholder only if it hasn't changed
+                if (queryTextarea.placeholder === 'Generating audio...') {
+                    queryTextarea.placeholder = originalPlaceholderValue;
+                }
+            }
+        }
+
         function playNextAudio() {
             if (audioQueue.length === 0) {
                 isPlaying = false;
@@ -714,6 +935,23 @@
             currentAudio.onerror = () => {
                 showError('Error playing audio file.');
                 stopTTS();
+            };
+            currentAudio.play();
+        }
+
+        function playNextAudioBackground() {
+            if (audioQueue.length === 0) {
+                isPlaying = false;
+                currentAudio = null;
+                return;
+            }
+            isPlaying = true;
+            currentAudio = new Audio(audioQueue.shift());
+            currentAudio.onended = playNextAudioBackground;
+            currentAudio.onerror = () => {
+                showError('Error playing audio file.');
+                isPlaying = false;
+                currentAudio = null;
             };
             currentAudio.play();
         }
