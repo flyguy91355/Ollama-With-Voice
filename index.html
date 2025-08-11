@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,53 +10,101 @@
             margin: 0;
             padding: 0;
         }
+        
+        :root {
+            --primary-color: #667eea;
+            --primary-hover: #5a67d8;
+            --secondary-color: #764ba2;
+            --success-color: #48bb78;
+            --warning-color: #ed8936;
+            --error-color: #f56565;
+            --info-color: #4299e1;
+            
+            --bg-primary: #ffffff;
+            --bg-secondary: #f7fafc;
+            --bg-tertiary: #edf2f7;
+            --text-primary: #2d3748;
+            --text-secondary: #4a5568;
+            --text-muted: #718096;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --radius-sm: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+        }
+        
+        [data-theme="dark"] {
+            --bg-primary: #1a202c;
+            --bg-secondary: #2d3748;
+            --bg-tertiary: #4a5568;
+            --text-primary: #f7fafc;
+            --text-secondary: #e2e8f0;
+            --text-muted: #a0aec0;
+            --border-color: #4a5568;
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+        }
+        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f4f9;
-            color: #333;
-            height: 100dvh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            color: var(--text-primary);
+            height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-        }
-        body.dark {
-            background-color: #1e1e1e;
-            color: #fff;
+            font-size: 14px;
+            line-height: 1.6;
+            transition: all 0.3s ease;
         }
         header {
             display: flex;
             align-items: center;
-            padding: 10px 20px;
-            background-color: #fff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1rem 1.5rem;
+            background: var(--bg-primary);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
             position: relative;
             z-index: 1001;
         }
-        body.dark header {
-            background-color: #2a2a2a;
-        }
+        
         h1 {
-            font-size: 1.5em;
-            color: #333;
-            margin: 0 15px;
-        }
-        body.dark h1 {
-            color: #ffffff;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0 1rem;
+            letter-spacing: -0.025em;
         }
         .header-buttons {
             margin-left: auto; /* Pushes buttons to the right */
         }
         #menu-toggle {
-            display: block; /* Always show menu button */
-            background: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-secondary);
             border: none;
-            font-size: 1.8em;
-            color: #333;
+            font-size: 1.25rem;
+            color: var(--text-primary);
             cursor: pointer;
-            padding: 0 10px;
+            padding: 0.75rem;
+            border-radius: var(--radius-md);
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-sm);
         }
-        body.dark #menu-toggle {
-            color: #fff;
+        
+        #menu-toggle:hover {
+            background: var(--bg-tertiary);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
         }
         main {
             flex: 1;
@@ -65,167 +113,338 @@
             position: relative;
         }
         #sidebar {
-            width: 250px;
+            width: 300px;
             height: 100%;
-            padding: 20px;
-            background-color: #fff;
-            border-right: 1px solid #ddd;
+            padding: 0;
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border-color);
             overflow-y: auto;
             position: absolute;
             top: 0;
-            left: -250px; /* Hidden by default */
-            transition: left 0.3s ease-in-out;
+            left: -300px;
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 1000;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-lg);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
         }
+        
         #sidebar.active {
-            left: 0; /* Slide in when active */
+            left: 0;
         }
-        body.dark #sidebar {
-            background-color: #2a2a2a;
-            border-right: 1px solid #444;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        
+        .sidebar-section {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
-        #sidebar h2 {
-            margin-bottom: 10px;
-            color: #333;
+        
+        .sidebar-section:last-child {
+            border-bottom: none;
+            flex: 1;
         }
-        body.dark #sidebar h2 {
-            color: #ffffff;
+        
+        .sidebar-section h2 {
+            margin: 0 0 1rem 0;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            opacity: 0.8;
+            margin-bottom: 0.75rem;
         }
         #conversation-select {
             width: 100%;
-            margin-bottom: 10px;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            margin-bottom: 0.75rem;
+            padding: 0.875rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1rem;
+            padding-right: 2.5rem;
         }
-        body.dark #conversation-select {
-            background-color: #3a3a3a;
-            color: #fff;
-            border-color: #555;
+        
+        #conversation-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
-        #sidebar button {
-            display: block;
-            width: 100%;
-            margin-bottom: 5px;
-            padding: 8px;
-            background-color: #4a90e2;
-            color: white;
-            border: none;
-            border-radius: 4px;
+        
+        .sidebar-button-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .sidebar-button {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
             cursor: pointer;
-            text-align: center;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-        #sidebar button:hover {
-            background-color: #3a7bc8;
+        
+        .sidebar-button:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--primary-color);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
         }
-        #sidebar button.active-mode {
-            background-color: #c0392b;
+        
+        .sidebar-button.primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+            color: white;
+            border-color: var(--primary-color);
         }
-        #sidebar button.active-mode:hover {
-            background-color: #e74c3c;
+        
+        .sidebar-button.primary:hover {
+            background: linear-gradient(135deg, var(--primary-hover), var(--secondary-color));
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
         }
-        body.dark #sidebar button {
-            background-color: #3a7bc8;
-        }
-        body.dark #sidebar button:hover {
-            background-color: #2a5d9a;
-        }
-        body.dark #sidebar button.active-mode {
-            background-color: #c0392b;
-        }
-        body.dark #sidebar button.active-mode:hover {
-            background-color: #e74c3c;
-        }
+        
         .sidebar-divider {
-            border: none;
-            border-top: 1px solid #ddd;
-            margin: 20px 0;
-        }
-        body.dark .sidebar-divider {
-            border-top-color: #444;
+            display: none;
         }
         #content {
             flex: 1;
             display: flex;
             flex-direction: column;
-            padding: 20px;
+            padding: 1.5rem;
             overflow: hidden;
-			min-height: 0;
+            min-height: 0;
+            gap: 1rem;
         }
+        
         .controls {
             display: flex;
             flex-direction: column;
-            gap: 15px;
-            width: 100%;
+            gap: 1rem;
         }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .control-group label {
+            color: var(--text-secondary);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            margin-bottom: 0.25rem;
+        }
+        
+        .control-group select,
+        .control-group input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+        
+        .control-group select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1rem;
+            padding-right: 2.5rem;
+        }
+        
+        .control-group select:focus,
+        .control-group input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .voice-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .voice-button {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .voice-button:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--primary-color);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .voice-button.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .voice-button.recording {
+            background: var(--error-color);
+            color: white;
+            border-color: var(--error-color);
+            animation: pulse-red 1.5s infinite;
+        }
+        
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(245, 101, 101, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(245, 101, 101, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(245, 101, 101, 0); }
+        }
+        
         .controls > div {
             flex: 1;
         }
+        
         label {
             display: block;
-            margin-bottom: 5px;
-            font-size: 0.9em;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            letter-spacing: -0.01em;
         }
-        select, input {
+        
+        select, input[type="number"] {
             width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
         }
-        body.dark select, body.dark input {
-            background-color: #3a3a3a;
-            color: #fff;
-            border-color: #555;
+        
+        select:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
         #chat {
             flex: 1;
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 10px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
             overflow-y: auto;
-            margin-bottom: 10px;
+            margin-bottom: 0;
             position: relative;
             display: flex;
             flex-direction: column;
+            box-shadow: var(--shadow-sm);
+            backdrop-filter: blur(10px);
         }
-        body.dark #chat {
-            background-color: #2a2a2a;
-            border-color: #444;
-            color: #fff;
+        
+        #chat::-webkit-scrollbar {
+            width: 6px;
         }
-        #chat div {
-            margin-bottom: 10px;
-            line-height: 1.4;
+        
+        #chat::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+            border-radius: 3px;
         }
+        
+        #chat::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+        
+        #chat::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+        
         .message {
-            margin-bottom: 10px;
-            line-height: 1.4;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+            animation: fadeInUp 0.3s ease;
         }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
         .message strong {
-            color: #0066cc;
+            color: var(--primary-color);
             text-transform: capitalize;
+            font-weight: 600;
+            font-size: 0.875rem;
+            letter-spacing: 0.025em;
         }
-        body.dark .message strong {
-            color: #4da6ff;
-        }
+        
         .message-content {
             display: inline;
+            color: var(--text-primary);
+            margin-left: 0.5rem;
         }
         .streaming {
             animation: pulse 2s infinite;
         }
+        
         @keyframes pulse {
             0% { opacity: 1; }
             50% { opacity: 0.7; }
             100% { opacity: 1; }
         }
         
-        /* Toggle Switch Styles */
-        .toggle-container {
-            margin: 10px 0;
+        /* Enhanced Toggle Container for Sidebar */
+        .sidebar .toggle-container {
+            margin: 0.75rem 0;
+            padding: 1.125rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            transition: all 0.2s ease;
+        }
+        
+        .sidebar .toggle-container:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--primary-color);
         }
         
         .toggle-label {
@@ -233,24 +452,25 @@
             align-items: center;
             justify-content: space-between;
             cursor: pointer;
-            margin-bottom: 0;
+            margin: 0;
             user-select: none;
+            min-height: 26px;
         }
         
         .toggle-text {
-            font-size: 0.9em;
-            color: #333;
-        }
-        
-        body.dark .toggle-text {
-            color: #fff;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            letter-spacing: -0.01em;
+            flex: 1;
+            margin-right: 1rem;
         }
         
         .toggle-switch {
             position: relative;
-            width: 44px;
-            height: 24px;
-            margin-left: 10px;
+            width: 48px;
+            height: 26px;
+            flex-shrink: 0;
         }
         
         .toggle-switch input[type="checkbox"] {
@@ -267,131 +487,247 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: #ccc;
-            transition: 0.3s ease;
-            border-radius: 24px;
+            background: var(--border-color);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 26px;
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
         }
         
         .toggle-slider:before {
             position: absolute;
             content: "";
-            height: 18px;
-            width: 18px;
+            height: 20px;
+            width: 20px;
             left: 3px;
-            bottom: 3px;
-            background-color: white;
-            transition: 0.3s ease;
+            top: 50%;
+            transform: translateY(-50%);
+            background: white;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             border-radius: 50%;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
         
         .toggle-switch input:checked + .toggle-slider {
-            background-color: #4CAF50;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.15);
+            background: var(--success-color);
+            box-shadow: 0 0 10px rgba(72, 187, 120, 0.3);
         }
         
         .toggle-switch input:focus + .toggle-slider {
-            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.3);
+            box-shadow: 0 0 0 3px rgba(72, 187, 120, 0.2);
         }
         
         .toggle-switch input:checked + .toggle-slider:before {
-            transform: translateX(20px);
+            transform: translateY(-50%) translateX(22px);
         }
         
-        body.dark .toggle-slider {
-            background-color: #555;
-        }
-        
-        body.dark .toggle-switch input:checked + .toggle-slider {
-            background-color: #4CAF50;
-        }
-        
-        /* Hover effects */
+        /* Toggle hover effects */
         .toggle-label:hover .toggle-slider {
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.15);
+            transform: none;
+            box-shadow: 0 0 8px rgba(102, 126, 234, 0.2);
         }
         
-        .toggle-label:hover .toggle-slider:before {
-            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-        }
-        
-        /* Dark Mode Toggle - Special styling */
+        /* Specialized Toggle Colors */
         #theme-toggle:checked + .toggle-slider {
-            background-color: #2196F3; /* Blue color for dark mode toggle */
+            background: var(--info-color);
+            box-shadow: 0 0 10px rgba(66, 153, 225, 0.4);
         }
         
         #theme-toggle:focus + .toggle-slider {
-            box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.3);
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
         }
         
-        /* Conversation Mode Toggle - Special styling */
         #conversation-mode-toggle:checked + .toggle-slider {
-            background-color: #FF9800; /* Orange color for conversation mode toggle */
+            background: var(--warning-color);
+            box-shadow: 0 0 10px rgba(237, 137, 54, 0.4);
         }
         
         #conversation-mode-toggle:focus + .toggle-slider {
-            box-shadow: 0 0 0 2px rgba(255, 152, 0, 0.3);
+            box-shadow: 0 0 0 3px rgba(237, 137, 54, 0.2);
         }
         
         /* Active conversation mode styling */
+        .toggle-container.active-mode {
+            background: rgba(237, 137, 54, 0.1);
+            border: 1px solid rgba(237, 137, 54, 0.3);
+        }
+        
         .toggle-container.active-mode .toggle-text {
-            color: #FF9800;
+            color: var(--warning-color);
             font-weight: 600;
         }
         
-        body.dark .toggle-container.active-mode .toggle-text {
-            color: #FFB74D;
-        }
-        
         .toggle-container.active-mode .toggle-slider {
-            background-color: #FF9800 !important;
+            background: var(--warning-color) !important;
             animation: pulse-orange 2s infinite;
         }
         
         @keyframes pulse-orange {
-            0% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(255, 152, 0, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0); }
-        }
-        #chat div strong {
-            text-transform: capitalize;
+            0% { box-shadow: 0 0 0 0 rgba(237, 137, 54, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(237, 137, 54, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(237, 137, 54, 0); }
         }
         #input-area {
             display: flex;
-            gap: 10px;
-            padding-top: 10px;
+            gap: 1rem;
+            padding-top: 0;
+            align-items: flex-end;
         }
+        
         #query {
             flex: 1;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            min-height: 40px;
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            min-height: 60px;
+            max-height: 200px;
             resize: vertical;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            line-height: 1.5;
+            transition: all 0.2s ease;
+            font-family: inherit;
         }
-        body.dark #query {
-            background-color: #3a3a3a;
-            color: #fff;
-            border-color: #555;
+        
+        #query:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
+        
+        #query::placeholder {
+            color: var(--text-muted);
+        }
+        
         #input-area button {
-            padding: 10px 15px;
-            background-color: #4a90e2;
+            padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: var(--radius-lg);
             cursor: pointer;
             flex-shrink: 0;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-sm);
+            min-height: 60px;
         }
+        
         #input-area button:hover {
-            background-color: #3a7bc8;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            background: linear-gradient(135deg, var(--primary-hover), var(--secondary-color));
         }
-        body.dark #input-area button {
-            background-color: #3a7bc8;
+        
+        #input-area button:active {
+            transform: translateY(0);
         }
-        body.dark #input-area button:hover {
-            background-color: #2a5d9a;
+        
+        #input-area button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Loading and status indicators */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 8px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid var(--primary-color);
+            border-radius: var(--radius-md);
+            color: var(--primary-color);
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin: 1rem 0;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+            #container {
+                flex-direction: column;
+                height: 100vh;
+            }
+            
+            #sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+                order: -1;
+            }
+            
+            #main-content {
+                flex: 1;
+                min-height: 0;
+            }
+            
+            #input-area {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            #input-area button {
+                min-height: 48px;
+            }
+            
+            .toggle-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .toggle-container {
+                justify-content: space-between;
+                padding: 1rem 0.875rem;
+            }
+            
+            .toggle-text {
+                font-size: 0.8125rem;
+            }
+            
+            .toggle-switch {
+                width: 44px;
+                height: 24px;
+            }
+            
+            .toggle-switch input:checked + .toggle-slider:before {
+                transform: translateY(-50%) translateX(20px);
+            }
+        }
+        
+        /* Accessibility improvements */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+        
+        /* High contrast mode */
+        @media (prefers-contrast: high) {
+            :root {
+                --border-color: #000;
+                --shadow-sm: 0 2px 4px rgba(0,0,0,0.8);
+                --shadow-md: 0 4px 12px rgba(0,0,0,0.8);
+            }
         }
         #error-notification, #status-notification {
             position: fixed;
@@ -417,29 +753,36 @@
                 font-size: 1.2em;
             }
             #sidebar {
-                 width: 80%;
-                 left: -80%;
+                 width: 85%;
+                 left: -85%;
             }
-            #sidebar button {
-                font-size: 0.85em;
-                padding: 6px;
+            .sidebar-section {
+                padding: 1rem;
+            }
+            .sidebar-button, .voice-button {
+                font-size: 0.8125rem;
+                padding: 0.875rem;
+            }
+            .sidebar-button-group {
+                flex-direction: column;
+                gap: 0.375rem;
             }
             #content {
-                padding: 10px;
+                padding: 1rem;
             }
             #chat {
-                margin-bottom: 10px;
-                padding: 10px;
+                margin-bottom: 0.75rem;
+                padding: 1rem;
             }
             #input-area {
-                gap: 8px;
+                gap: 0.5rem;
             }
             #query {
-                min-height: 40px; 
+                min-height: 50px; 
             }
             #input-area button {
-                padding: 8px 12px;
-                font-size: 0.8em;
+                padding: 0.875rem 1rem;
+                font-size: 0.875rem;
             }
         }
 
@@ -447,22 +790,25 @@
             h1 {
                 font-size: 1.1em;
             }
-            #sidebar button {
-                font-size: 0.8em;
-                padding: 5px;
+            .sidebar-button, .voice-button {
+                font-size: 0.75rem;
+                padding: 0.75rem;
+            }
+            .sidebar-section h2 {
+                font-size: 0.6875rem;
             }
             #content {
-                padding: 10px 5px;
+                padding: 0.75rem;
             }
-            label {
-                font-size: 0.8em;
+            .control-group label {
+                font-size: 0.75rem;
             }
             #input-area {
-                gap: 5px;
+                gap: 0.375rem;
             }
             #input-area button {
-                padding: 8px 10px;
-                font-size: 0.75em;
+                padding: 0.75rem 1rem;
+                font-size: 0.8125rem;
             }
         }
     </style>
@@ -476,41 +822,30 @@
     </header>
     <main>
         <div id="sidebar">
-            <h2>Conversations</h2>
-            <select id="conversation-select" aria-label="Select conversation" onchange="loadConversation(this.value)">
-                <option value="">Select conversation</option>
-            </select>
-            <button onclick="newConversation()" aria-label="Start new conversation">New Conversation</button>
-            <button onclick="deleteConversation()" aria-label="Delete selected conversation">Delete</button>
-            <button id="refresh-button" onclick="refreshCache()" aria-label="Refresh models and voices cache">Refresh Cache</button>
-            <div class="toggle-container">
-                <label for="theme-toggle" class="toggle-label">
-                    <span class="toggle-text">Dark Mode</span>
-                    <div class="toggle-switch">
-                        <input type="checkbox" id="theme-toggle" aria-label="Toggle dark/light theme">
-                        <div class="toggle-slider"></div>
-                    </div>
-                </label>
+            <!-- Conversations Section -->
+            <div class="sidebar-section">
+                <h2>Conversations</h2>
+                <select id="conversation-select" aria-label="Select conversation" onchange="loadConversation(this.value)">
+                    <option value="">Select conversation</option>
+                </select>
+                <div class="sidebar-button-group">
+                    <button class="sidebar-button primary" onclick="newConversation()" aria-label="Start new conversation">New Chat</button>
+                    <button class="sidebar-button" onclick="deleteConversation()" aria-label="Delete selected conversation">Delete</button>
+                </div>
+                <button class="sidebar-button" id="refresh-button" onclick="refreshCache()" aria-label="Refresh models and voices cache">🔄 Refresh Cache</button>
             </div>
-            
-            <hr class="sidebar-divider">
 
-            <div class="controls">
-                <div>
-                    <label for="model-select">Model</label>
-                    <select id="model-select" aria-label="Select AI model">
-                        <option>Select a model</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="voice-select">Voice</label>
-                    <select id="voice-select" aria-label="Select TTS voice">
-                        <option>Select a voice</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="max-tokens">Max Tokens</label>
-                    <input type="number" id="max-tokens" value="200" min="1" max="1000" aria-label="Set maximum tokens for response">
+            <!-- Settings Section -->
+            <div class="sidebar-section">
+                <h2>Settings</h2>
+                <div class="toggle-container">
+                    <label for="theme-toggle" class="toggle-label">
+                        <span class="toggle-text">Dark Mode</span>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="theme-toggle" aria-label="Toggle dark/light theme">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </label>
                 </div>
                 <div class="toggle-container">
                     <label for="streaming-toggle" class="toggle-label">
@@ -523,19 +858,50 @@
                 </div>
             </div>
 
-            <hr class="sidebar-divider">
-            
-            <div class="toggle-container">
-                <label for="conversation-mode-toggle" class="toggle-label">
-                    <span class="toggle-text">🎙️ Conversation Mode</span>
-                    <div class="toggle-switch">
-                        <input type="checkbox" id="conversation-mode-toggle" aria-label="Toggle continuous conversation mode">
-                        <div class="toggle-slider"></div>
+            <!-- AI Configuration Section -->
+            <div class="sidebar-section">
+                <h2>AI Configuration</h2>
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="model-select">Model</label>
+                        <select id="model-select" aria-label="Select AI model">
+                            <option>Select a model</option>
+                        </select>
                     </div>
-                </label>
+                    <div class="control-group">
+                        <label for="voice-select">Voice</label>
+                        <select id="voice-select" aria-label="Select TTS voice">
+                            <option>Select a voice</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="max-tokens">Max Tokens</label>
+                        <input type="number" id="max-tokens" value="200" min="1" max="1000" aria-label="Set maximum tokens for response">
+                    </div>
+                </div>
             </div>
-            <button id="mic-button" onclick="startRecording()" aria-label="Start voice recording">🎤 Start Recording</button>
-            <button id="stop-button" onclick="stopTTS()" aria-label="Stop audio playback">⏹️ Stop Playback</button>
+
+            <!-- Voice Controls Section -->
+            <div class="sidebar-section">
+                <h2>Voice Controls</h2>
+                <div class="toggle-container">
+                    <label for="conversation-mode-toggle" class="toggle-label">
+                        <span class="toggle-text">🎙️ Conversation Mode</span>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="conversation-mode-toggle" aria-label="Toggle continuous conversation mode">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </label>
+                </div>
+                <div class="voice-controls">
+                    <button class="voice-button" id="mic-button" onclick="startRecording()" aria-label="Start voice recording">
+                        🎤 Start Recording
+                    </button>
+                    <button class="voice-button" id="stop-button" onclick="stopTTS()" aria-label="Stop audio playback">
+                        ⏹️ Stop Playback
+                    </button>
+                </div>
+            </div>
         </div>
         <div id="content">
             <div id="chat" aria-live="polite">
@@ -563,7 +929,7 @@
         // Theme toggle with persistence
         const themeToggle = document.getElementById('theme-toggle');
         function setTheme(isDark) {
-            document.body.classList.toggle('dark', isDark);
+            document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
             themeToggle.checked = isDark;
             localStorage.setItem('theme', isDark ? 'dark' : 'light');
         }

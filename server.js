@@ -590,7 +590,14 @@ async function runServer() {
       let answer;
       if (service === 'ollama') {
         const options = maxTokens ? { num_predict: parseInt(maxTokens) } : {};
-        let body = { model, messages, stream, options, think: true };
+        // Only enable thinking for models that are known to support it
+        const supportsThinking = model.toLowerCase().includes('deepseek-r1') || 
+                                model.toLowerCase().includes('qwen') ||
+                                model.toLowerCase().includes('thinking');
+        let body = { model, messages, stream, options };
+        if (supportsThinking) {
+          body.think = true;
+        }
         
         if (stream) {
           // Set up Server-Sent Events for streaming
@@ -684,11 +691,31 @@ async function runServer() {
           }
           if (!content) {
             logger.error(`Invalid Ollama response for model ${model}:`, JSON.stringify(data, null, 2));
-            answer = 'Model failed to generate a response. Please try again.';
-          } else {
+            // Try to extract any available text content
+            if (typeof data === 'string') {
+              content = data;
+            } else if (data.error) {
+              throw new Error(`Ollama model error: ${data.error}`);
+            } else {
+              // Last resort - check for any text-like properties
+              const possibleContent = data.text || data.output || data.content || '';
+              if (possibleContent) {
+                content = possibleContent;
+              } else {
+                answer = 'Model failed to generate a response. Please try again.';
+              }
+            }
+          }
+          
+          if (content) {
             // Robust regex for <think> tag removal using new RegExp
             const thinkRegex = new RegExp('<think>[^<]*</think>', 'g');
             answer = String(content).replace(thinkRegex, '').trim();
+            
+            // If answer is empty after think tag removal, provide a fallback
+            if (!answer) {
+              answer = 'Model generated a response but it was filtered out. Please try again.';
+            }
           }
         }
       } else {
