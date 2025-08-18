@@ -235,16 +235,45 @@ async function runServer() {
     const decoder = new TextDecoder();
     let fullResponse = '';
     
+    // Send server status updates
+    clientResponse.write(`data: ${JSON.stringify({ 
+      serverStatus: 'Started processing Ollama response stream', 
+      timestamp: new Date().toISOString() 
+    })}\n\n`);
+    
     while (true) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) {
+        clientResponse.write(`data: ${JSON.stringify({ 
+          serverStatus: 'Ollama stream completed', 
+          timestamp: new Date().toISOString() 
+        })}\n\n`);
+        break;
+      }
       
       const chunk = decoder.decode(value);
       const lines = chunk.split('\n').filter(line => line.trim() !== '');
       
+      // Send server status for chunk processing
+      if (lines.length > 0) {
+        clientResponse.write(`data: ${JSON.stringify({ 
+          serverStatus: `Processing ${lines.length} chunk(s) from Ollama`, 
+          timestamp: new Date().toISOString() 
+        })}\n\n`);
+      }
+      
       for (const line of lines) {
         try {
           const data = JSON.parse(line);
+          
+          // Send server status for each data packet
+          if (data.message?.content) {
+            clientResponse.write(`data: ${JSON.stringify({ 
+              serverStatus: `Received content chunk (${data.message.content.length} chars)`, 
+              timestamp: new Date().toISOString() 
+            })}\n\n`);
+          }
+          
           if (data.message?.content) {
             const content = data.message.content;
             fullResponse += content;
@@ -258,6 +287,11 @@ async function runServer() {
             }
           }
           if (data.done) {
+            clientResponse.write(`data: ${JSON.stringify({ 
+              serverStatus: 'Processing complete response and saving to history', 
+              timestamp: new Date().toISOString() 
+            })}\n\n`);
+            
             // Clean the full response and save to history
             const thinkRegex = new RegExp('<think>[^<]*</think>', 'g');
             const cleanFullResponse = fullResponse.replace(thinkRegex, '').trim();
@@ -265,12 +299,22 @@ async function runServer() {
             conversationCache.set(conversationId, history);
             const filePath = path.join(conversationsDir, `${conversationId}.json`);
             await fs.writeFile(filePath, JSON.stringify(history, null, 2)).catch(err => logger.error('Error saving conversation:', err));
+            
+            clientResponse.write(`data: ${JSON.stringify({ 
+              serverStatus: 'Conversation saved successfully', 
+              timestamp: new Date().toISOString() 
+            })}\n\n`);
+            
             clientResponse.write(`data: ${JSON.stringify({ content: '', done: true, conversationId })}\n\n`);
             clientResponse.end();
             return;
           }
         } catch (parseError) {
           logger.warn('Failed to parse streaming chunk:', parseError.message);
+          clientResponse.write(`data: ${JSON.stringify({ 
+            serverStatus: `Parse error: ${parseError.message}`, 
+            timestamp: new Date().toISOString() 
+          })}\n\n`);
         }
       }
     }
@@ -548,7 +592,7 @@ async function runServer() {
   });
 
   app.post('/query', queryLimiter, async (req, res) => {
-    let { query, conversationId, model, maxTokens = 200, stream = false } = req.body;
+    let { query, conversationId, model, maxTokens = 200, stream = false, turboMode = false } = req.body;
     const queryError = validateStringInput(query, 1000, 'Query');
     const modelError = validateStringInput(model, 100, 'Model');
     if (queryError || modelError) {
@@ -590,6 +634,12 @@ async function runServer() {
       let answer;
       if (service === 'ollama') {
         const options = maxTokens ? { num_predict: parseInt(maxTokens) } : {};
+        
+        // Add turbo mode if enabled
+        if (turboMode) {
+          options.turbo = true;
+        }
+        
         // Only enable thinking for models that are known to support it
         const supportsThinking = model.toLowerCase().includes('deepseek-r1') || 
                                 model.toLowerCase().includes('qwen') ||
@@ -612,21 +662,65 @@ async function runServer() {
 
           // Send initial connection confirmation
           res.write(': connected\n\n');
+          
+          // Send server status updates
+          res.write(`data: ${JSON.stringify({ 
+            serverStatus: `Initializing query for model: ${model}${turboMode ? ' (Turbo Mode)' : ''}`, 
+            timestamp: new Date().toISOString() 
+          })}\n\n`);
+          
+          res.write(`data: ${JSON.stringify({ 
+            serverStatus: `Query: "${query.substring(0, 100)}${query.length > 100 ? '...' : ''}"`, 
+            timestamp: new Date().toISOString() 
+          })}\n\n`);
+          
+          res.write(`data: ${JSON.stringify({ 
+            serverStatus: `History length: ${history.length} messages`, 
+            timestamp: new Date().toISOString() 
+          })}\n\n`);
+          
+          if (turboMode) {
+            res.write(`data: ${JSON.stringify({ 
+              serverStatus: `⚡ Turbo mode enabled for faster responses`, 
+              timestamp: new Date().toISOString() 
+            })}\n\n`);
+          }
 
           let fullResponse = '';
           
           try {
+            res.write(`data: ${JSON.stringify({ 
+              serverStatus: `Connecting to Ollama API...`, 
+              timestamp: new Date().toISOString() 
+            })}\n\n`);
+            
             const response = await fetch('http://127.0.0.1:11434/api/chat', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(body)
             });
             
+            res.write(`data: ${JSON.stringify({ 
+              serverStatus: `Ollama responded with status: ${response.status}`, 
+              timestamp: new Date().toISOString() 
+            })}\n\n`);
+            
             if (!response.ok) {
               const errorText = await response.text();
               if (errorText.includes('does not support thinking')) {
+                res.write(`data: ${JSON.stringify({ 
+                  serverStatus: `Model ${model} doesn't support thinking - retrying without`, 
+                  timestamp: new Date().toISOString() 
+                })}\n\n`);
+                
                 logger.info(`Model ${model} does not support thinking; retrying without`);
                 body.think = false;
+                
+                res.write(`data: ${JSON.stringify({ 
+                  serverStatus: `Retrying request without thinking capability...`, 
+                  timestamp: new Date().toISOString() 
+                })}\n\n`);
+                
                 const retryResponse = await fetch('http://127.0.0.1:11434/api/chat', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -636,11 +730,21 @@ async function runServer() {
                   throw new Error(`Ollama API error: ${retryResponse.statusText}`);
                 }
                 
+                res.write(`data: ${JSON.stringify({ 
+                  serverStatus: `Retry successful - starting stream processing`, 
+                  timestamp: new Date().toISOString() 
+                })}\n\n`);
+                
                 await processStreamingResponse(retryResponse, res, history, conversationId);
               } else {
                 throw new Error(`Ollama API error: ${response.statusText}`);
               }
             } else {
+              res.write(`data: ${JSON.stringify({ 
+                serverStatus: `Starting stream processing for successful response`, 
+                timestamp: new Date().toISOString() 
+              })}\n\n`);
+              
               await processStreamingResponse(response, res, history, conversationId);
             }
           } catch (streamError) {

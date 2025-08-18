@@ -2,13 +2,18 @@
 <html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Local AI Chat with Voice using Ollama</title>
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+            -webkit-tap-highlight-color: transparent;
         }
         
         :root {
@@ -54,12 +59,17 @@
             background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
             color: var(--text-primary);
             height: 100vh;
+            height: 100dvh; /* Use dynamic viewport height for better mobile support */
             display: flex;
             flex-direction: column;
             overflow: hidden;
             font-size: 14px;
             line-height: 1.6;
             transition: all 0.3s ease;
+            -webkit-text-size-adjust: 100%; /* Prevent text scaling on iOS */
+            -ms-text-size-adjust: 100%;
+            margin: 0;
+            padding: 0;
         }
         header {
             display: flex;
@@ -112,6 +122,25 @@
             overflow: hidden;
             position: relative;
         }
+        
+        /* Mobile overlay for sidebar */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            backdrop-filter: blur(2px);
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar-overlay.active {
+                display: block;
+            }
+        }
         #sidebar {
             width: 300px;
             height: 100%;
@@ -142,6 +171,7 @@
         .sidebar-section:last-child {
             border-bottom: none;
             flex: 1;
+            padding-bottom: 2rem; /* Add bottom padding for scrolling */
         }
         
         .sidebar-section h2 {
@@ -231,6 +261,7 @@
             overflow: hidden;
             min-height: 0;
             gap: 1rem;
+            width: 100%; /* Ensure full width usage */
         }
         
         .controls {
@@ -372,6 +403,8 @@
             flex-direction: column;
             box-shadow: var(--shadow-sm);
             backdrop-filter: blur(10px);
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         
         #chat::-webkit-scrollbar {
@@ -396,6 +429,8 @@
             margin-bottom: 1.5rem;
             line-height: 1.6;
             animation: fadeInUp 0.3s ease;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         
         @keyframes fadeInUp {
@@ -421,6 +456,9 @@
             display: inline;
             color: var(--text-primary);
             margin-left: 0.5rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         .streaming {
             animation: pulse 2s infinite;
@@ -571,6 +609,7 @@
             gap: 1rem;
             padding-top: 0;
             align-items: flex-end;
+            width: 100%; /* Ensure full width */
         }
         
         #query {
@@ -661,56 +700,6 @@
         }
         
         /* Responsive design */
-        @media (max-width: 768px) {
-            #container {
-                flex-direction: column;
-                height: 100vh;
-            }
-            
-            #sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
-                order: -1;
-            }
-            
-            #main-content {
-                flex: 1;
-                min-height: 0;
-            }
-            
-            #input-area {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-            
-            #input-area button {
-                min-height: 48px;
-            }
-            
-            .toggle-group {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .toggle-container {
-                justify-content: space-between;
-                padding: 1rem 0.875rem;
-            }
-            
-            .toggle-text {
-                font-size: 0.8125rem;
-            }
-            
-            .toggle-switch {
-                width: 44px;
-                height: 24px;
-            }
-            
-            .toggle-switch input:checked + .toggle-slider:before {
-                transform: translateY(-50%) translateX(20px);
-            }
-        }
         
         /* Accessibility improvements */
         @media (prefers-reduced-motion: reduce) {
@@ -727,6 +716,63 @@
                 --border-color: #000;
                 --shadow-sm: 0 2px 4px rgba(0,0,0,0.8);
                 --shadow-md: 0 4px 12px rgba(0,0,0,0.8);
+            }
+        }
+        
+        /* Touch device optimizations */
+        @media (hover: none) and (pointer: coarse) {
+            .sidebar-button, .voice-button, #input-area button {
+                min-height: 44px;
+                padding: 1rem 0.875rem;
+            }
+            
+            .toggle-container {
+                padding: 1rem;
+                min-height: 44px;
+            }
+            
+            #menu-toggle {
+                min-height: 44px;
+                min-width: 44px;
+            }
+        }
+        
+        /* Mobile keyboard handling */
+        @media (max-width: 768px) {
+            #sidebar {
+                max-height: calc(100vh - 70px);
+                max-height: calc(100dvh - 70px);
+                overflow-y: auto;
+                position: fixed;
+                top: 70px;
+            }
+            
+            body.keyboard-open {
+                height: 100vh;
+                height: 100dvh;
+                overflow: hidden;
+            }
+            
+            body.keyboard-open #chat {
+                max-height: calc(100vh - 200px);
+                max-height: calc(100dvh - 200px);
+                overflow-y: auto;
+            }
+            
+            body.keyboard-open #input-area {
+                position: relative;
+                bottom: 0;
+                background: var(--bg-primary);
+                border-top: 1px solid var(--border-color);
+                padding-top: 1rem;
+                flex-shrink: 0;
+            }
+        }
+        
+        /* Prevent zoom on inputs for iOS */
+        @supports (-webkit-touch-callout: none) {
+            input, select, textarea {
+                font-size: 16px !important;
             }
         }
         #error-notification, #status-notification {
@@ -747,69 +793,478 @@
             background-color: #4a90e2;
         }
 
-        /* Mobile-specific styles */
+        /* Mobile-first responsive design */
         @media (max-width: 768px) {
+            body {
+                font-size: 16px; /* Prevent zoom on iOS */
+                height: 100vh;
+                height: 100dvh; /* Dynamic viewport height for mobile */
+            }
+            
+            header {
+                padding: 0.75rem 1rem;
+                position: sticky;
+                top: 0;
+                z-index: 1001;
+                flex-shrink: 0;
+            }
+            
             h1 {
-                font-size: 1.2em;
+                font-size: 1.125rem;
+                margin: 0 0.75rem;
             }
+            
+            #menu-toggle {
+                padding: 0.75rem;
+                font-size: 1.125rem;
+                min-width: 44px;
+                min-height: 44px;
+            }
+            
+            main {
+                flex: 1;
+                min-height: 0;
+                overflow: hidden;
+            }
+            
             #sidebar {
-                 width: 85%;
-                 left: -85%;
+                width: 85%;
+                left: -85%;
+                box-shadow: var(--shadow-lg);
+                height: calc(100vh - 70px); /* Subtract approximate header height */
+                height: calc(100dvh - 70px);
+                max-height: calc(100vh - 70px);
+                max-height: calc(100dvh - 70px);
+                overflow-y: auto;
+                position: fixed;
+                top: 70px; /* Start below header */
             }
+            
             .sidebar-section {
                 padding: 1rem;
             }
-            .sidebar-button, .voice-button {
-                font-size: 0.8125rem;
-                padding: 0.875rem;
+            
+            .sidebar-section:first-child {
+                padding-top: 1.5rem; /* Extra top padding for first section */
             }
+            
+            .sidebar-section:last-child {
+                padding-bottom: 4rem; /* Extra padding on mobile for better scrolling */
+                min-height: auto;
+            }
+            
+            .sidebar-section h2 {
+                font-size: 0.75rem;
+                margin-bottom: 0.75rem;
+            }
+            
+            .sidebar-button, .voice-button {
+                font-size: 0.875rem;
+                padding: 1rem 0.875rem;
+                min-height: 44px;
+                width: 100%;
+            }
+            
             .sidebar-button-group {
                 flex-direction: column;
-                gap: 0.375rem;
-            }
-            #content {
-                padding: 1rem;
-            }
-            #chat {
-                margin-bottom: 0.75rem;
-                padding: 1rem;
-            }
-            #input-area {
                 gap: 0.5rem;
             }
-            #query {
-                min-height: 50px; 
+            
+            .control-group select,
+            .control-group input,
+            #conversation-select {
+                padding: 1rem;
+                font-size: 16px;
+                min-height: 44px;
+                width: 100%;
             }
-            #input-area button {
-                padding: 0.875rem 1rem;
+            
+            .toggle-container {
+                padding: 1rem;
+                min-height: 44px;
+            }
+            
+            .toggle-text {
                 font-size: 0.875rem;
+            }
+            
+            .toggle-switch {
+                width: 48px;
+                height: 26px;
+            }
+            
+            #content {
+                padding: 1rem;
+                gap: 1rem;
+                display: flex;
+                flex-direction: column;
+                flex: 1;
+                min-height: 0;
+                overflow: hidden;
+            }
+            
+            #chat {
+                padding: 1rem;
+                margin-bottom: 0;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                flex: 1;
+                min-height: 0;
+                overflow-y: auto;
+            }
+            
+            .message {
+                margin-bottom: 1rem;
+                font-size: 0.9375rem;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }
+            
+            .message-content {
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }
+            
+            #input-area {
+                gap: 0.75rem;
+                flex-direction: row;
+                align-items: stretch;
+                flex-shrink: 0;
+                padding: 0;
+                margin: 0;
+                width: 100%;
+            }
+            
+            #query {
+                min-height: 50px;
+                max-height: 120px;
+                padding: 1rem;
+                font-size: 16px;
+                line-height: 1.4;
+                flex: 1;
+                width: auto;
+            }
+            
+            #input-area button {
+                padding: 1rem 1.25rem;
+                font-size: 0.875rem;
+                min-height: 50px;
+                min-width: 80px;
+                flex-shrink: 0;
+                white-space: nowrap;
             }
         }
 
         @media (max-width: 480px) {
+            body {
+                height: 100vh;
+                height: 100dvh;
+            }
+            
+            header {
+                padding: 0.5rem 0.75rem;
+                flex-shrink: 0;
+            }
+            
             h1 {
-                font-size: 1.1em;
+                font-size: 1rem;
+                margin: 0 0.5rem;
             }
+            
+            #menu-toggle {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 0.5rem;
+            }
+            
+            #sidebar {
+                width: 90%;
+                left: -90%;
+                position: fixed;
+                height: calc(100vh - 60px); /* Subtract header height for small screens */
+                height: calc(100dvh - 60px);
+                max-height: calc(100vh - 60px);
+                max-height: calc(100dvh - 60px);
+                top: 60px; /* Start below header */
+            }
+            
+            .sidebar-section {
+                padding: 0.75rem;
+            }
+            
+            .sidebar-section:first-child {
+                padding-top: 1.25rem; /* Extra top padding for first section */
+            }
+            
+            .sidebar-section:last-child {
+                padding-bottom: 3rem;
+                min-height: auto;
+            }
+            
             .sidebar-button, .voice-button {
-                font-size: 0.75rem;
-                padding: 0.75rem;
+                font-size: 0.8125rem;
+                padding: 0.875rem 0.75rem;
+                min-height: 44px;
+                width: 100%;
             }
-            .sidebar-section h2 {
-                font-size: 0.6875rem;
-            }
-            #content {
-                padding: 0.75rem;
-            }
+            
             .control-group label {
                 font-size: 0.75rem;
             }
+            
+            .control-group select,
+            .control-group input,
+            #conversation-select {
+                min-height: 44px;
+                width: 100%;
+            }
+            
+            #content {
+                padding: 0.75rem;
+                gap: 0.75rem;
+                flex: 1;
+                min-height: 0;
+                overflow: hidden;
+            }
+            
+            #chat {
+                padding: 0.75rem;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                flex: 1;
+                min-height: 0;
+                overflow-y: auto;
+            }
+            
+            .message {
+                font-size: 0.875rem;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                margin-bottom: 0.875rem;
+            }
+            
+            .message-content {
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                max-width: 100%;
+            }
+            
+            #input-area {
+                gap: 0.5rem;
+                flex-direction: row;
+                align-items: stretch;
+                flex-shrink: 0;
+                width: 100%;
+            }
+            
+            #query {
+                min-height: 44px;
+                max-height: 100px;
+                flex: 1;
+                padding: 0.75rem;
+                font-size: 16px;
+            }
+            
+            #input-area button {
+                min-height: 44px;
+                min-width: 70px;
+                flex-shrink: 0;
+                padding: 0.75rem 1rem;
+                font-size: 0.8125rem;
+                white-space: nowrap;
+            }
+        }
+        
+        /* Extra small screens */
+        @media (max-width: 375px) {
+            #content {
+                padding: 0.5rem;
+                gap: 0.5rem;
+            }
+            
             #input-area {
                 gap: 0.375rem;
             }
-            #input-area button {
-                padding: 0.75rem 1rem;
-                font-size: 0.8125rem;
+            
+            #query {
+                min-height: 44px;
+                max-height: 80px;
+                padding: 0.75rem;
             }
+            
+            #input-area button {
+                min-width: 60px;
+                padding: 0.75rem 0.5rem;
+                font-size: 0.75rem;
+            }
+            
+            h1 {
+                font-size: 0.9rem;
+                margin: 0 0.25rem;
+            }
+            
+            #menu-toggle {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 0.375rem;
+                font-size: 1rem;
+            }
+        }
+        
+        /* Landscape phone adjustments */
+        @media (max-width: 768px) and (orientation: landscape) {
+            #chat {
+                max-height: calc(100vh - 200px);
+            }
+            
+            #query {
+                max-height: 80px;
+            }
+        }
+        
+        /* Markdown Styling */
+        .message-content .md-h1,
+        .message-content .md-h2,
+        .message-content .md-h3,
+        .message-content .md-h4,
+        .message-content .md-h5,
+        .message-content .md-h6 {
+            margin: 1em 0 0.5em 0;
+            line-height: 1.3;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .message-content .md-h1 { font-size: 1.8em; border-bottom: 2px solid var(--border-color); padding-bottom: 0.3em; }
+        .message-content .md-h2 { font-size: 1.5em; border-bottom: 1px solid var(--border-color); padding-bottom: 0.3em; }
+        .message-content .md-h3 { font-size: 1.3em; }
+        .message-content .md-h4 { font-size: 1.1em; }
+        .message-content .md-h5 { font-size: 1em; }
+        .message-content .md-h6 { font-size: 0.9em; color: var(--text-secondary); }
+        
+        .message-content .code-block {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 1em;
+            margin: 1em 0;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+            color: var(--text-primary);
+            position: relative;
+        }
+        
+        .message-content .code-block::before {
+            content: attr(data-language);
+            position: absolute;
+            top: 0.5em;
+            right: 0.5em;
+            background: var(--bg-tertiary);
+            color: var(--text-muted);
+            padding: 0.2em 0.5em;
+            border-radius: 3px;
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .message-content .code-block[data-language=""]::before {
+            display: none;
+        }
+        
+        .message-content .code-block code {
+            background: none;
+            padding: 0;
+            border: none;
+            font-size: inherit;
+        }
+        
+        .message-content .inline-code {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            padding: 0.2em 0.4em;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+            color: var(--text-primary);
+        }
+        
+        .message-content .md-list,
+        .message-content .md-list-ordered {
+            margin: 1em 0;
+            padding-left: 1.5em;
+        }
+        
+        .message-content .md-list-item,
+        .message-content .md-list-item-ordered {
+            margin: 0.5em 0;
+            line-height: 1.6;
+        }
+        
+        .message-content .md-blockquote {
+            border-left: 4px solid var(--primary-color);
+            margin: 1em 0;
+            padding: 0.5em 1em;
+            background: var(--bg-secondary);
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+        
+        .message-content .md-hr {
+            border: none;
+            height: 2px;
+            background: var(--border-color);
+            margin: 2em 0;
+        }
+        
+        .message-content a {
+            color: var(--primary-color);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s ease;
+        }
+        
+        .message-content a:hover {
+            border-bottom-color: var(--primary-color);
+        }
+        
+        .message-content strong {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .message-content em {
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+        
+        .message-content del {
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+        
+        /* Dark mode adjustments for markdown */
+        [data-theme="dark"] .message-content .code-block {
+            background: var(--bg-tertiary);
+            border-color: var(--text-muted);
+        }
+        
+        [data-theme="dark"] .message-content .inline-code {
+            background: var(--bg-tertiary);
+            border-color: var(--text-muted);
+        }
+        
+        [data-theme="dark"] .message-content .md-blockquote {
+            background: var(--bg-tertiary);
+            border-left-color: var(--primary-color);
+        }
+        
+        [data-theme="dark"] .message-content .md-hr {
+            background: var(--text-muted);
         }
     </style>
 </head>
@@ -821,6 +1276,7 @@
         </div>
     </header>
     <main>
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
         <div id="sidebar">
             <!-- Conversations Section -->
             <div class="sidebar-section">
@@ -858,6 +1314,22 @@
                 </div>
             </div>
 
+            <!-- Server Status Section -->
+            <div class="sidebar-section" id="server-status-section" style="display: none;">
+                <h2>Server Status</h2>
+                <div class="toggle-container">
+                    <label for="server-status-toggle" class="toggle-label">
+                        <span class="toggle-text">Show Server Logs</span>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="server-status-toggle" aria-label="Show server status">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </label>
+                </div>
+                <div id="server-status-log" style="display: none; max-height: 200px; overflow-y: auto; background: var(--bg-tertiary); padding: 8px; border-radius: var(--radius-sm); font-family: monospace; font-size: 12px; margin-top: 8px;">
+                </div>
+            </div>
+
             <!-- AI Configuration Section -->
             <div class="sidebar-section">
                 <h2>AI Configuration</h2>
@@ -878,6 +1350,20 @@
                         <label for="max-tokens">Max Tokens</label>
                         <input type="number" id="max-tokens" value="200" min="1" max="1000" aria-label="Set maximum tokens for response">
                     </div>
+                </div>
+                
+                <!-- Turbo Mode Toggle -->
+                <div class="toggle-container">
+                    <label for="turbo-mode-toggle" class="toggle-label">
+                        <span class="toggle-text">⚡ Turbo Mode</span>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="turbo-mode-toggle" aria-label="Enable Turbo mode for faster responses">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </label>
+                    <small style="color: var(--text-muted); font-size: 0.8em; margin-top: 4px; display: block;">
+                        Faster responses for compatible models (experimental)
+                    </small>
                 </div>
             </div>
 
@@ -922,6 +1408,53 @@
         let recognition;
         let currentAudio = null;
         let isConversationModeActive = false;
+        let audioUnlocked = false;
+
+        // Mobile audio handling - create audio element on user interaction
+        let mobileAudioContext = null;
+        let mobileAudioReady = false;
+        
+        function prepareMobileAudio() {
+            if (mobileAudioReady) return;
+            
+            try {
+                // Create audio element during user interaction
+                mobileAudioContext = new Audio();
+                mobileAudioContext.preload = 'metadata';
+                mobileAudioContext.volume = 1.0;
+                
+                // Test with a data URL to unlock
+                mobileAudioContext.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+                
+                const playPromise = mobileAudioContext.play();
+                if (playPromise) {
+                    playPromise.then(() => {
+                        mobileAudioContext.pause();
+                        mobileAudioContext.currentTime = 0;
+                        mobileAudioReady = true;
+                        audioUnlocked = true;
+                        console.log('Mobile audio prepared and unlocked');
+                    }).catch((error) => {
+                        console.log('Mobile audio unlock failed:', error);
+                        mobileAudioReady = true; // Still mark as ready
+                        audioUnlocked = true;
+                    });
+                } else {
+                    mobileAudioReady = true;
+                    audioUnlocked = true;
+                }
+            } catch (error) {
+                console.log('Mobile audio preparation failed:', error);
+                mobileAudioReady = true;
+                audioUnlocked = true;
+            }
+        }
+        
+        // Simple audio unlock function
+        function unlockAudio() {
+            if (audioUnlocked) return;
+            prepareMobileAudio();
+        }
 
         // --- Element variables ---
         let queryTextarea, sendButton, micButton, conversationModeToggle, originalPlaceholder;
@@ -941,9 +1474,20 @@
         // Sidebar Menu Toggle
         const menuToggle = document.getElementById('menu-toggle');
         const sidebar = document.getElementById('sidebar');
-        menuToggle.addEventListener('click', () => {
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        
+        function toggleSidebar() {
             sidebar.classList.toggle('active');
-        });
+            sidebarOverlay.classList.toggle('active');
+        }
+        
+        function closeSidebar() {
+            sidebar.classList.remove('active');
+            sidebarOverlay.classList.remove('active');
+        }
+        
+        menuToggle.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', closeSidebar);
 
         // Close sidebar when clicking outside of it
         document.addEventListener('click', function(event) {
@@ -951,13 +1495,13 @@
             const isClickOnMenuToggle = menuToggle.contains(event.target);
 
             if (!isClickInsideSidebar && !isClickOnMenuToggle && sidebar.classList.contains('active')) {
-                sidebar.classList.remove('active');
+                closeSidebar();
             }
         });
 
         function closeSidebarIfMobile() {
             if (window.innerWidth <= 768) {
-                sidebar.classList.remove('active');
+                closeSidebar();
             }
         }
         
@@ -967,6 +1511,69 @@
                 closeSidebarIfMobile();
             }
 		});
+		
+		// Handle mobile viewport changes (keyboard open/close)
+		let initialViewportHeight = window.innerHeight;
+        
+        function handleViewportChange() {
+            const currentHeight = window.innerHeight;
+            const heightDifference = initialViewportHeight - currentHeight;
+            
+            // If viewport height decreased significantly (keyboard likely opened)
+            if (heightDifference > 150) {
+                document.body.classList.add('keyboard-open');
+                // Scroll to bottom of chat when keyboard opens
+                const chat = document.getElementById('chat');
+                setTimeout(() => {
+                    chat.scrollTop = chat.scrollHeight;
+                }, 100);
+            } else {
+                document.body.classList.remove('keyboard-open');
+            }
+        }
+        
+        window.addEventListener('resize', handleViewportChange);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                initialViewportHeight = window.innerHeight;
+                handleViewportChange();
+            }, 500);
+        });
+
+        // Add mobile audio test function (temporary for debugging)
+        function testMobileAudio() {
+            console.log('Testing mobile audio...');
+            
+            // Create a simple test audio with short base64
+            const testAudio = new Audio();
+            testAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+            
+            testAudio.addEventListener('ended', () => {
+                console.log('Test audio ended successfully');
+            });
+            
+            testAudio.addEventListener('error', (e) => {
+                console.error('Test audio error:', e);
+            });
+            
+            testAudio.play().then(() => {
+                console.log('Test audio played successfully');
+            }).catch(error => {
+                console.error('Test audio play failed:', error);
+            });
+        }
+        
+        // Unlock audio on first user interaction for mobile
+        document.addEventListener('touchstart', () => {
+            unlockAudio();
+            // Also test basic audio capability
+            setTimeout(testMobileAudio, 100);
+        }, { once: true });
+        document.addEventListener('click', () => {
+            unlockAudio();
+            // Also test basic audio capability
+            setTimeout(testMobileAudio, 100);
+        }, { once: true });
 
         function showError(message) {
             const notification = document.getElementById('error-notification');
@@ -1137,9 +1744,148 @@
             }
         }
 
+        // Simple syntax highlighting for common languages
+        function highlightCode(code, language) {
+            if (!language) return code;
+            
+            let highlighted = code;
+            
+            switch (language.toLowerCase()) {
+                case 'javascript':
+                case 'js':
+                    // Keywords
+                    highlighted = highlighted.replace(/\b(function|const|let|var|if|else|for|while|return|class|extends|import|export|async|await|try|catch|finally)\b/g, '<span style="color: #569cd6;">$1</span>');
+                    // Strings
+                    highlighted = highlighted.replace(/(["'`])((?:\\.|(?!\1)[^\\])*?)\1/g, '<span style="color: #ce9178;">$1$2$1</span>');
+                    // Comments
+                    highlighted = highlighted.replace(/\/\/.*$/gm, '<span style="color: #6a9955;">$&</span>');
+                    highlighted = highlighted.replace(/\/\*[\s\S]*?\*\//g, '<span style="color: #6a9955;">$&</span>');
+                    break;
+                    
+                case 'python':
+                case 'py':
+                    // Keywords
+                    highlighted = highlighted.replace(/\b(def|class|if|elif|else|for|while|import|from|return|try|except|finally|with|as|lambda|yield|async|await)\b/g, '<span style="color: #569cd6;">$1</span>');
+                    // Strings
+                    highlighted = highlighted.replace(/(["'`])((?:\\.|(?!\1)[^\\])*?)\1/g, '<span style="color: #ce9178;">$1$2$1</span>');
+                    // Comments
+                    highlighted = highlighted.replace(/#.*$/gm, '<span style="color: #6a9955;">$&</span>');
+                    break;
+                    
+                case 'html':
+                    // Tags
+                    highlighted = highlighted.replace(/(&lt;\/?)([a-zA-Z][a-zA-Z0-9]*)(.*?)(&gt;)/g, '<span style="color: #569cd6;">$1</span><span style="color: #4ec9b0;">$2</span>$3<span style="color: #569cd6;">$4</span>');
+                    // Attributes
+                    highlighted = highlighted.replace(/(\s+)([a-zA-Z-]+)(=)/g, '$1<span style="color: #92c5f8;">$2</span>$3');
+                    break;
+                    
+                case 'css':
+                    // Selectors
+                    highlighted = highlighted.replace(/^([.#]?[a-zA-Z][a-zA-Z0-9-_]*)\s*{/gm, '<span style="color: #d7ba7d;">$1</span> {');
+                    // Properties
+                    highlighted = highlighted.replace(/([a-zA-Z-]+)(\s*:)/g, '<span style="color: #9cdcfe;">$1</span>$2');
+                    // Values
+                    highlighted = highlighted.replace(/(:\s*)([^;}\n]+)/g, '$1<span style="color: #ce9178;">$2</span>');
+                    break;
+                    
+                case 'json':
+                    // Keys
+                    highlighted = highlighted.replace(/(["'])([^"']+)(["']\s*:)/g, '<span style="color: #9cdcfe;">$1$2$1</span>:');
+                    // Strings
+                    highlighted = highlighted.replace(/(:\s*)(["'])([^"']*)(["'])/g, '$1<span style="color: #ce9178;">$2$3$4</span>');
+                    // Numbers
+                    highlighted = highlighted.replace(/(:\s*)(\d+\.?\d*)/g, '$1<span style="color: #b5cea8;">$2</span>');
+                    // Booleans/null
+                    highlighted = highlighted.replace(/\b(true|false|null)\b/g, '<span style="color: #569cd6;">$1</span>');
+                    break;
+            }
+            
+            return highlighted;
+        }
+
         function formatMessage(content) {
-            // Basic formatting: escape HTML and preserve line breaks
-            return content.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+            // Comprehensive markdown parser
+            let html = content;
+            
+            // Escape HTML first to prevent injection
+            html = html.replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;');
+            
+            // Code blocks (``` or ~~~) - must be before other formatting
+            html = html.replace(/```(\w+)?\n?([\s\S]*?)```/g, (match, lang, code) => {
+                const language = lang ? ` data-language="${lang}"` : '';
+                const highlightedCode = lang ? highlightCode(code.trim(), lang) : code.trim();
+                return `<pre class="code-block"${language}><code>${highlightedCode}</code></pre>`;
+            });
+            
+            html = html.replace(/~~~(\w+)?\n?([\s\S]*?)~~~/g, (match, lang, code) => {
+                const language = lang ? ` data-language="${lang}"` : '';
+                const highlightedCode = lang ? highlightCode(code.trim(), lang) : code.trim();
+                return `<pre class="code-block"${language}><code>${highlightedCode}</code></pre>`;
+            });
+            
+            // Inline code (but not inside code blocks)
+            html = html.replace(/`([^`\n]+)`/g, '<code class="inline-code">$1</code>');
+            
+            // Headers (# ## ### #### ##### ######)
+            html = html.replace(/^######\s+(.+)$/gm, '<h6 class="md-h6">$1</h6>');
+            html = html.replace(/^#####\s+(.+)$/gm, '<h5 class="md-h5">$1</h5>');
+            html = html.replace(/^####\s+(.+)$/gm, '<h4 class="md-h4">$1</h4>');
+            html = html.replace(/^###\s+(.+)$/gm, '<h3 class="md-h3">$1</h3>');
+            html = html.replace(/^##\s+(.+)$/gm, '<h2 class="md-h2">$1</h2>');
+            html = html.replace(/^#\s+(.+)$/gm, '<h1 class="md-h1">$1</h1>');
+            
+            // Process lists properly
+            // Unordered lists
+            html = html.replace(/^[\s]*[-*+]\s+(.+)$/gm, '<LISTITEM>$1</LISTITEM>');
+            html = html.replace(/(<LISTITEM>.*?<\/LISTITEM>(?:\n<LISTITEM>.*?<\/LISTITEM>)*)/g, (match) => {
+                const items = match.replace(/<LISTITEM>/g, '<li class="md-list-item">').replace(/<\/LISTITEM>/g, '</li>');
+                return `<ul class="md-list">${items}</ul>`;
+            });
+            
+            // Ordered lists
+            html = html.replace(/^[\s]*(\d+)\.\s+(.+)$/gm, '<ORDEREDITEM>$2</ORDEREDITEM>');
+            html = html.replace(/(<ORDEREDITEM>.*?<\/ORDEREDITEM>(?:\n<ORDEREDITEM>.*?<\/ORDEREDITEM>)*)/g, (match) => {
+                const items = match.replace(/<ORDEREDITEM>/g, '<li class="md-list-item-ordered">').replace(/<\/ORDEREDITEM>/g, '</li>');
+                return `<ol class="md-list-ordered">${items}</ol>`;
+            });
+            
+            // Bold and italic (order matters - do most specific first)
+            html = html.replace(/\*\*\*([^*\n]+)\*\*\*/g, '<strong><em>$1</em></strong>');
+            html = html.replace(/___([^_\n]+)___/g, '<strong><em>$1</em></strong>');
+            html = html.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/__([^_\n]+)__/g, '<strong>$1</strong>');
+            html = html.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+            html = html.replace(/_([^_\n]+)_/g, '<em>$1</em>');
+            
+            // Strikethrough
+            html = html.replace(/~~([^~\n]+)~~/g, '<del>$1</del>');
+            
+            // Links [text](url)
+            html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+            
+            // Auto-links for URLs (but not if already in links)
+            html = html.replace(/(?<!href="|">)(https?:\/\/[^\s<>"]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+            
+            // Blockquotes
+            html = html.replace(/^>\s*(.+)$/gm, '<blockquote class="md-blockquote">$1</blockquote>');
+            
+            // Horizontal rules
+            html = html.replace(/^---+$/gm, '<hr class="md-hr">');
+            html = html.replace(/^\*\*\*+$/gm, '<hr class="md-hr">');
+            html = html.replace(/^___+$/gm, '<hr class="md-hr">');
+            
+            // Line breaks (convert \n to <br> but not around block elements)
+            html = html.replace(/\n/g, '<br>');
+            
+            // Clean up extra line breaks around block elements
+            html = html.replace(/<br>\s*(<(?:h[1-6]|ul|ol|blockquote|hr|pre)[^>]*>)/g, '$1');
+            html = html.replace(/(<\/(?:h[1-6]|ul|ol|blockquote|hr|pre)>)\s*<br>/g, '$1');
+            html = html.replace(/(<\/li>)<br>/g, '$1');
+            html = html.replace(/<br>(<li)/g, '$1');
+            
+            return html;
         }
 
         function addMessage(role, content) {
@@ -1168,6 +1914,7 @@
             const model = document.getElementById('model-select').value;
             const maxTokens = parseInt(document.getElementById('max-tokens').value);
             const streamingEnabled = document.getElementById('streaming-toggle').checked;
+            const turboMode = document.getElementById('turbo-mode-toggle').checked;
             
             if (!query) {
                 showError('Please enter a message');
@@ -1198,7 +1945,8 @@
                     conversationId: currentConversationId, 
                     model, 
                     maxTokens,
-                    stream: streamingEnabled 
+                    stream: streamingEnabled,
+                    turboMode
                 };
 
                 if (streamingEnabled) {
@@ -1242,6 +1990,12 @@
                                         if (line.startsWith('data: ')) {
                                             try {
                                                 const data = JSON.parse(line.slice(6));
+                                                
+                                                // Handle server status messages
+                                                if (data.serverStatus) {
+                                                    addServerStatusMessage(data.serverStatus, data.timestamp);
+                                                }
+                                                
                                                 if (data.done) {
                                                     if (assistantMessageDiv) {
                                                         assistantMessageDiv.classList.remove('streaming');
@@ -1274,6 +2028,11 @@
                                         
                                         if (data.error) {
                                             throw new Error(data.error);
+                                        }
+                                        
+                                        // Handle server status messages
+                                        if (data.serverStatus) {
+                                            addServerStatusMessage(data.serverStatus, data.timestamp);
                                         }
                                         
                                         if (data.content) {
@@ -1446,15 +2205,74 @@
                 }
                 return;
             }
+            
             isPlaying = true;
             queryTextarea.placeholder = 'Playing audio...';
-            currentAudio = new Audio(audioQueue.shift());
-            currentAudio.onended = playNextAudio;
-            currentAudio.onerror = () => {
-                showError('Error playing audio file.');
-                stopTTS();
-            };
-            currentAudio.play();
+            
+            const audioFile = audioQueue.shift();
+            console.log('Playing audio file:', audioFile);
+            
+            // Use mobile audio context if available, otherwise create new
+            if (mobileAudioContext && mobileAudioReady) {
+                console.log('Using mobile audio context');
+                currentAudio = mobileAudioContext;
+                
+                // Clean up any existing listeners
+                currentAudio.removeEventListener('ended', playNextAudio);
+                currentAudio.removeEventListener('error', null);
+                
+                // Set new source
+                currentAudio.src = audioFile;
+                
+                // Add fresh listeners
+                currentAudio.addEventListener('ended', playNextAudio, { once: true });
+                currentAudio.addEventListener('error', (e) => {
+                    console.error('Mobile audio error:', e);
+                    showError('Error playing audio file.');
+                    stopTTS();
+                }, { once: true });
+                
+                // Load and play
+                currentAudio.load();
+                currentAudio.play().catch(error => {
+                    console.error('Mobile audio play failed:', error);
+                    showError('Mobile audio blocked. Please tap the page first.');
+                    stopTTS();
+                });
+                
+            } else {
+                console.log('Using standard audio element');
+                currentAudio = new Audio(audioFile);
+                
+                // Add debugging for desktop/fallback
+                currentAudio.addEventListener('loadedmetadata', () => {
+                    console.log('Audio: loadedmetadata, duration:', currentAudio.duration);
+                });
+                currentAudio.addEventListener('play', () => console.log('Audio: play event fired'));
+                currentAudio.addEventListener('playing', () => console.log('Audio: playing'));
+                currentAudio.addEventListener('ended', () => {
+                    console.log('Audio: ended');
+                    playNextAudio();
+                });
+                currentAudio.addEventListener('error', (e) => {
+                    console.error('Audio error:', e);
+                    showError('Error playing audio file.');
+                    stopTTS();
+                });
+                
+                // Try to play immediately
+                console.log('Attempting to play audio...');
+                const playPromise = currentAudio.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        console.log('Audio play promise resolved successfully');
+                    }).catch(error => {
+                        console.error('Audio play failed:', error);
+                        showError('Audio blocked. Please tap anywhere on the page first.');
+                        stopTTS();
+                    });
+                }
+            }
         }
 
         function playNextAudioBackground() {
@@ -1463,23 +2281,46 @@
                 currentAudio = null;
                 return;
             }
+            
             isPlaying = true;
-            currentAudio = new Audio(audioQueue.shift());
-            currentAudio.onended = playNextAudioBackground;
-            currentAudio.onerror = () => {
-                showError('Error playing audio file.');
+            currentAudio = new Audio();
+            
+            // Set properties for mobile compatibility
+            currentAudio.preload = 'auto';
+            currentAudio.volume = 1.0;
+            
+            const audioFile = audioQueue.shift();
+            
+            currentAudio.addEventListener('loadeddata', () => {
+                setTimeout(() => {
+                    if (currentAudio) {
+                        const playPromise = currentAudio.play();
+                        if (playPromise) {
+                            playPromise.catch(error => {
+                                console.error('Background audio play failed:', error);
+                                isPlaying = false;
+                                currentAudio = null;
+                            });
+                        }
+                    }
+                }, 50);
+            });
+            
+            currentAudio.addEventListener('ended', playNextAudioBackground);
+            currentAudio.addEventListener('error', () => {
+                console.error('Error playing audio file.');
                 isPlaying = false;
                 currentAudio = null;
-            };
-            currentAudio.play();
+            });
+            
+            currentAudio.src = audioFile;
         }
 
         function stopTTS() {
             showStatus('Stopped audio');
             if (currentAudio) {
                 currentAudio.pause();
-                currentAudio.onended = null;
-                currentAudio.onerror = null;
+                currentAudio.currentTime = 0;
             }
             audioQueue = [];
             isPlaying = false;
@@ -1620,6 +2461,36 @@
             }
         });
         
+        // Server status functionality
+        let serverStatusEnabled = false;
+        let serverStatusLog = null;
+        
+        function addServerStatusMessage(message, timestamp) {
+            if (!serverStatusEnabled || !serverStatusLog) return;
+            
+            const logEntry = document.createElement('div');
+            logEntry.style.marginBottom = '4px';
+            logEntry.style.fontSize = '11px';
+            logEntry.style.color = 'var(--text-secondary)';
+            
+            const timeStr = new Date(timestamp).toLocaleTimeString();
+            logEntry.innerHTML = `<span style="color: var(--text-muted);">[${timeStr}]</span> ${message}`;
+            
+            serverStatusLog.appendChild(logEntry);
+            serverStatusLog.scrollTop = serverStatusLog.scrollHeight;
+            
+            // Keep only last 50 entries
+            while (serverStatusLog.children.length > 50) {
+                serverStatusLog.removeChild(serverStatusLog.firstChild);
+            }
+        }
+        
+        function clearServerStatusLog() {
+            if (serverStatusLog) {
+                serverStatusLog.innerHTML = '';
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             queryTextarea = document.getElementById('query');
             sendButton = document.getElementById('send-button');
@@ -1628,6 +2499,33 @@
             originalPlaceholder = queryTextarea.placeholder;
 
             conversationModeToggle.addEventListener('change', toggleConversationMode);
+            
+            // Setup server status toggle
+            const serverStatusToggle = document.getElementById('server-status-toggle');
+            const serverStatusSection = document.getElementById('server-status-section');
+            serverStatusLog = document.getElementById('server-status-log');
+            
+            serverStatusToggle.addEventListener('change', (e) => {
+                serverStatusEnabled = e.target.checked;
+                serverStatusLog.style.display = serverStatusEnabled ? 'block' : 'none';
+                
+                if (serverStatusEnabled) {
+                    addServerStatusMessage('Server status logging enabled', new Date().toISOString());
+                } else {
+                    clearServerStatusLog();
+                }
+            });
+            
+            // Show server status section when streaming is enabled
+            const streamingToggle = document.getElementById('streaming-toggle');
+            streamingToggle.addEventListener('change', (e) => {
+                serverStatusSection.style.display = e.target.checked ? 'block' : 'none';
+            });
+            
+            // Show initially if streaming is enabled
+            if (streamingToggle.checked) {
+                serverStatusSection.style.display = 'block';
+            }
 
             loadModels();
             loadVoices();
