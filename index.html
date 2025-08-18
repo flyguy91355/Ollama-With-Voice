@@ -1347,8 +1347,8 @@
                         </select>
                     </div>
                     <div class="control-group">
-                        <label for="max-tokens">Max Tokens</label>
-                        <input type="number" id="max-tokens" value="200" min="1" max="1000" aria-label="Set maximum tokens for response">
+                        <label for="max-tokens">Max Tokens (0 = unlimited)</label>
+                        <input type="number" id="max-tokens" value="200" min="0" aria-label="Set maximum tokens for response (0 = unlimited)">
                     </div>
                 </div>
                 
@@ -1924,8 +1924,8 @@
                 showError('Please select a model');
                 return;
             }
-            if (isNaN(maxTokens) || maxTokens < 1 || maxTokens > 1000) {
-                showError('Max tokens must be between 1 and 1000');
+            if (isNaN(maxTokens) || maxTokens < 0) {
+                showError('Max tokens must be 0 or greater (0 = unlimited)');
                 return;
             }
             

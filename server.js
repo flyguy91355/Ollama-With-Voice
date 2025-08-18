@@ -166,7 +166,10 @@ async function runServer() {
     if (service === 'openai') {
       const openaiModel = model.split(':')[1];
       url = 'https://api.openai.com/v1/chat/completions';
-      body = { model: openaiModel, messages, stream: false, max_tokens: maxTokens };
+      body = { model: openaiModel, messages, stream: false };
+      if (maxTokens && maxTokens > 0) {
+        body.max_tokens = maxTokens;
+      }
       headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` };
     } else if (service === 'gemini') {
       const geminiModel = model.split(':')[1];
@@ -175,14 +178,19 @@ async function runServer() {
         contents: messages.map(msg => ({
           role: msg.role === 'assistant' ? 'model' : 'user',
           parts: [{ text: msg.content }]
-        })),
-        generationConfig: { maxOutputTokens: maxTokens }
+        }))
       };
+      if (maxTokens && maxTokens > 0) {
+        body.generationConfig = { maxOutputTokens: maxTokens };
+      }
       headers = { 'Content-Type': 'application/json' };
     } else if (service === 'grok') {
       const grokModel = model.split(':')[1];
       url = 'https://api.x.ai/v1/chat/completions';
-      body = { model: grokModel, messages, stream: false, max_tokens: maxTokens };
+      body = { model: grokModel, messages, stream: false };
+      if (maxTokens && maxTokens > 0) {
+        body.max_tokens = maxTokens;
+      }
       headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` };
     } else {
       throw new Error('Unknown service');
@@ -599,9 +607,9 @@ async function runServer() {
       logger.error('Query validation failed:', queryError || modelError);
       return res.status(400).json({ error: queryError || modelError });
     }
-    if (maxTokens && (isNaN(maxTokens) || maxTokens < 1 || maxTokens > 1000)) {
+    if (maxTokens && (isNaN(maxTokens) || maxTokens < 0)) {
       logger.error('Invalid maxTokens:', maxTokens);
-      return res.status(400).json({ error: 'Max tokens must be a number between 1 and 1000' });
+      return res.status(400).json({ error: 'Max tokens must be a number greater than or equal to 0 (0 = unlimited)' });
     }
     const service = getServiceFromModel(model);
     if (service !== 'ollama' && !apiKeys[service]) {
@@ -633,7 +641,7 @@ async function runServer() {
     try {
       let answer;
       if (service === 'ollama') {
-        const options = maxTokens ? { num_predict: parseInt(maxTokens) } : {};
+        const options = (maxTokens && maxTokens > 0) ? { num_predict: parseInt(maxTokens) } : {};
         
         // Add turbo mode if enabled
         if (turboMode) {
